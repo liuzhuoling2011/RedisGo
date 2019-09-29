@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/go-redis/redis"
 	"os"
+	"strconv"
+	"strings"
 )
 
-type RicliInfo struct {
+type RedisInfo struct {
 	// Server
 	Redis_version     string `json:"redis_version"`
 	Redis_git_sha1    string `json:"redis_git_sha_1"`
@@ -106,8 +108,6 @@ type RicliInfo struct {
 	Db0 string `json:"db0"`
 }
 
-var containerMap = make(map[string]*Container)
-
 type Config struct {
 	Ip       string `json:"ip"`
 	Password string `json:"password"`
@@ -117,17 +117,22 @@ type Config struct {
 }
 
 type Container struct {
-	RemoteAddr string
+	Ip         string
 	Name       string
-	redis      *redis.Client
 	Status     uint8
+	redis      *redis.Client
 }
 
-func init_config() {
+var (
+	ContainerMap = make(map[string]*Container)
+	RedisConfigs []Config
+)
+
+func InitConfig() bool {
 	filePtr, err := os.Open("./config.json")
 	defer filePtr.Close()
 	if err != nil {
-		fmt.Println("不存在默认配置文件, 将创建默认配置文件")
+		fmt.Println("不存在默认配置文件, 将创建默认配置文件 config.json")
 		filePtr1, _ := os.Create("./config.json")
 		defer filePtr1.Close()
 		defaultConfig := []Config{{"localhost", "", 6379, 0, "default"}}
@@ -136,51 +141,75 @@ func init_config() {
 		return false
 	}
 
-	var configs []Config
 	decoder := json.NewDecoder(filePtr)
-	err = decoder.Decode(&configs)
+	err = decoder.Decode(&RedisConfigs)
 	if err != nil {
 		fmt.Println("配置文件解析失败", err.Error())
 		return false
 	}
-	fmt.Println(configs)
-
 	return true
 }
 
-//func (c *Container) interval() int64 {
-//	now := time.Now().Unix()
-//	i := now - c.LastTime.Unix()
-//	return i
-//}
-//
-//func (c *Container) getRicliInfo(remoteAddr string) *RicliInfo {
-//	return c.RicliInfo
-//}
-
-//func getRicliInfo(remoteAddr string) *RicliInfo {
-//	container := containerMap[remoteAddr]
-//	if container != nil {
-//		return container.RicliInfo
-//	}
-//	return nil
-//}
-
-//func addContainer(remoteAddr string, ricliInfo *RicliInfo) {
-//	if r := containerMap[remoteAddr]; r != nil {
-//		r.LastTime = time.Now()
-//		r.RicliInfo = ricliInfo
-//		r.Status = NORMAL
-//	} else {
-//		container := &Container{remoteAddr, remoteAddr,ricliInfo, time.Now(), NORMAL}
-//		containerMap[remoteAddr] = container
-//	}
-//}
-
-func GetContainers() map[string]*Container {
-	return containerMap
+func SaveConfig() bool {
+	filePtr, err := os.Open("./config.json")
+	defer filePtr.Close()
+	decoder := json.NewDecoder(filePtr)
+	err = decoder.Decode(&RedisConfigs)
+	if err != nil {
+		fmt.Println("配置文件解析失败", err.Error())
+		return false
+	}
+	return true
 }
 
-func GetContainer(remoteAddr string) *Container {
-	return containerMap[remoteAddr]
+func InitContainers() bool {
+	for _, config := range RedisConfigs {
+		addContainer(config.Ip, config.Port, config.Password, config.Db, config.Name)
+	}
+	if len(ContainerMap) == 0 {
+		fmt.Println("没有可用的redis连接, 请检查config.json")
+		return false
+	}
+	return true
+}
+
+func addContainer(ip string, port int, password string, db int, name string) bool {
+	client := redis.NewClient(&redis.Options{
+		Addr:     ip + ":" + strconv.Itoa(port),
+		Password: password,
+		DB:       db,
+	})
+	_, err := client.Ping().Result()
+	if err != nil {
+		fmt.Println("redis连接错误", ip, err.Error())
+		return false
+	}
+	container := &Container{ip, name, 0,client}
+	ContainerMap[ip] = container
+	return true
+}
+
+func deleteContainer(ip string) {
+	delete(ContainerMap, ip)
+}
+
+func editContainer(old_ip string, new_ip string, port int, password string, db int, name string) bool {
+	deleteContainer(old_ip)
+	return addContainer(new_ip, port, password, db, name)
+}
+
+func (c *Container) GetInfo() *RedisInfo {
+	infos := strings.Split(c.redis.Info().String(), "\r\n")
+	rinfo := &RedisInfo{}
+	infom := make(map[string]interface{})
+	for _, line := range infos {
+		args := strings.Split(line, ":")
+		if len(args) < 2 {
+			continue
+		}
+		infom[args[0]] = args[1]
+	}
+	b, _ := json.Marshal(infom)
+	json.Unmarshal(b, &rinfo)
+	return rinfo
 }
