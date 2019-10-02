@@ -27,6 +27,7 @@ type RedisInfo struct {
 	Hz                string `json:"hz"`
 	Lru_clock         string `json:"lru_clock"`
 	Executable        string `json:"executable"`
+	Config_file        string `json:"config_file"`
 	//Client
 	Connected_clients          string `json:"connected_clients"`
 	Client_longest_output_list string `json:"client_longest_output_list"`
@@ -48,7 +49,6 @@ type RedisInfo struct {
 	Maxmemory_policy          string `json:"maxmemory_policy"`
 	Mem_fragmentation_ratio   string `json:"mem_fragmentation_ratio"`
 	Mem_allocator             string `json:"mem_allocator"`
-
 	// Persistence
 	Loading                      string `json:"loading"`
 	Rdb_changes_since_last_save  string `json:"rdb_changes_since_last_save"`
@@ -57,14 +57,14 @@ type RedisInfo struct {
 	Rdb_last_bgsave_status       string `json:"rdb_last_bgsave_status"`
 	Rdb_last_bgsave_time_sec     string `json:"rdb_last_bgsave_time_sec"`
 	Rdb_current_bgsave_time_sec  string `json:"rdb_current_bgsave_time_sec"`
-	Aof_enable                   string `json:"aof_enable"`
+	Aof_enabled                  string `json:"aof_enabled"`
+	Aof_current_size             string `json:"aof_current_size"`
 	Aof_rewrite_in_progress      string `json:"aof_rewrite_in_progress"`
 	Aof_rewrite_secheduled       string `json:"aof_rewrite_secheduled"`
 	Aof_last_rewrite_time_sec    string `json:"aof_last_rewrite_time_sec"`
 	Aof_current_rewrite_time_sec string `json:"aof_current_rewrite_time_sec"`
 	Aof_last_bgrewrite_status    string `json:"aof_last_bgrewrite_status"`
 	Aof_last_write_status        string `json:"aof_last_write_status"`
-
 	//Stats
 	Total_connections_received string `json:"total_connections_received"`
 	Total_commands_processed   string `json:"total_commands_processed"`
@@ -106,7 +106,54 @@ type RedisInfo struct {
 
 	// Keyspace
 	Db0 string `json:"db0"`
+	Db1 string `json:"db1"`
+	Db2 string `json:"db2"`
+	Db3 string `json:"db3"`
+	Db4 string `json:"db4"`
+	Db5 string `json:"db5"`
+	Db6 string `json:"db6"`
+	Db7 string `json:"db7"`
+	Db8 string `json:"db8"`
+	Db9 string `json:"db9"`
+	Db10 string `json:"db10"`
+	Db11 string `json:"db11"`
+	Db12 string `json:"db12"`
+	Db13 string `json:"db13"`
+	Db14 string `json:"db14"`
+	Db15 string `json:"db15"`
 }
+
+type RedisLog struct {
+	Id          int64 `json:"id"`
+	Time        int64 `json:"time"`
+	Time_used   int64 `json:"time_used"`
+	Msg         string `json:"msg"`
+}
+
+type RedisLogList []*RedisLog
+
+type RedisClient struct {
+	Id          string `json:"id"`
+	Addr        string `json:"addr"`
+	Fd          string `json:"fd"`
+	Name        string `json:"name"`
+	Age         string `json:"age"`
+	Idle        string `json:"idle"`
+	Flag        string `json:"flag"`
+	Db          string `json:"db"`
+	Sub         string `json:"sub"`
+	Psub        string `json:"psub"`
+	Multi       string `json:"multi"`
+	Qbuf        string `json:"qbuf"`
+	Qbuf_free   string `json:"qbuf-free"`
+	Obl         string `json:"obl"`
+	Oll         string `json:"oll"`
+	Omem        string `json:"omem"`
+	Events      string `json:"events"`
+	Cmd         string `json:"cmd"`
+}
+
+type RedisClientList []*RedisClient
 
 type Config struct {
 	Ip       string `json:"ip"`
@@ -117,9 +164,10 @@ type Config struct {
 }
 
 type Container struct {
-	Ip         string
-	Name       string
-	Status     uint8
+	Ip         string `json:"ip"`
+	Name       string `json:"name"`
+	Status     uint8  `json:"status"`
+	Config
 	redis      *redis.Client
 }
 
@@ -164,7 +212,7 @@ func SaveConfig() bool {
 
 func InitContainers() bool {
 	for _, config := range RedisConfigs {
-		addContainer(config.Ip, config.Port, config.Password, config.Db, config.Name)
+		AddContainer(config)
 	}
 	if len(ContainerMap) == 0 {
 		fmt.Println("没有可用的redis连接, 请检查config.json")
@@ -173,29 +221,43 @@ func InitContainers() bool {
 	return true
 }
 
-func addContainer(ip string, port int, password string, db int, name string) bool {
+func AddContainer(config Config) bool {
+	if ContainerMap[config.Ip] != nil {
+		fmt.Println("redis ip 重复, 请检查", config.Ip)
+		return false
+	}
 	client := redis.NewClient(&redis.Options{
-		Addr:     ip + ":" + strconv.Itoa(port),
-		Password: password,
-		DB:       db,
+		Addr:     config.Ip + ":" + strconv.Itoa(config.Port),
+		Password: config.Password,
+		DB:       config.Db,
 	})
 	_, err := client.Ping().Result()
 	if err != nil {
-		fmt.Println("redis连接错误", ip, err.Error())
+		fmt.Println("redis连接错误", config.Ip, err.Error())
 		return false
 	}
-	container := &Container{ip, name, 0,client}
-	ContainerMap[ip] = container
+	container := &Container{config.Ip, config.Name, 0,config, client}
+	ContainerMap[config.Ip] = container
 	return true
 }
 
-func deleteContainer(ip string) {
-	delete(ContainerMap, ip)
+func UpdateContainer(config Config) bool {
+	client := redis.NewClient(&redis.Options{
+		Addr:     config.Ip + ":" + strconv.Itoa(config.Port),
+		Password: config.Password,
+		DB:       config.Db,
+	})
+	_, err := client.Ping().Result()
+	if err != nil {
+		fmt.Println("redis连接错误", config.Ip, err.Error())
+		return false
+	}
+	ContainerMap[config.Ip].redis = client
+	return true
 }
 
-func editContainer(old_ip string, new_ip string, port int, password string, db int, name string) bool {
-	deleteContainer(old_ip)
-	return addContainer(new_ip, port, password, db, name)
+func DeleteContainer(ip string) {
+	delete(ContainerMap, ip)
 }
 
 func (c *Container) GetInfo() *RedisInfo {
@@ -212,4 +274,46 @@ func (c *Container) GetInfo() *RedisInfo {
 	b, _ := json.Marshal(infom)
 	json.Unmarshal(b, &rinfo)
 	return rinfo
+}
+
+func (c *Container) GetLog() *RedisLogList {
+	rll := RedisLogList{}
+	logs, _ := c.redis.Do("SLOWLOG", "GET", "120").Result()
+	if logs_interfaces, ok := logs.([]interface{}); ok {
+		for _, logsi := range logs_interfaces {
+			if log, ok := logsi.([]interface{}); ok {
+				rlog := &RedisLog{}
+				rlog.Id = log[0].(int64)
+				rlog.Time = log[1].(int64)
+				rlog.Time_used = log[2].(int64)
+				rlog.Msg = fmt.Sprintf("%s", log[3])
+				rll = append(rll, rlog)
+			}
+		}
+	}
+	return &rll
+}
+
+func (c *Container) GetClients() *RedisClientList {
+	rcl := RedisClientList{}
+	infos := strings.Split(c.redis.ClientList().String(), "\n")
+	for _, line := range infos {
+		if line == "" {
+			continue
+		}
+		rclient := &RedisClient{}
+		clientm := make(map[string]interface{})
+		args := strings.Split(line, " ")
+		for _, pair := range args {
+			if pair == "client" || pair == "list:" {
+				continue
+			}
+			pairs := strings.Split(pair, "=")
+			clientm[pairs[0]] = pairs[1]
+		}
+		b, _ := json.Marshal(clientm)
+		json.Unmarshal(b, &rclient)
+		rcl = append(rcl, rclient)
+	}
+	return &rcl
 }
