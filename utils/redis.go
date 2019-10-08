@@ -164,10 +164,8 @@ type Config struct {
 }
 
 type Container struct {
-	Ip         string `json:"ip"`
-	Name       string `json:"name"`
-	Status     uint8  `json:"status"`
 	Config
+	Status     uint8  `json:"status"`
 	redis      *redis.Client
 }
 
@@ -180,13 +178,13 @@ func InitConfig() bool {
 	filePtr, err := os.Open("./config.json")
 	defer filePtr.Close()
 	if err != nil {
-		fmt.Println("不存在默认配置文件, 将创建默认配置文件 config.json")
-		filePtr1, _ := os.Create("./config.json")
-		defer filePtr1.Close()
-		defaultConfig := []Config{{"localhost", "", 6379, 0, "default"}}
-		data, _ := json.MarshalIndent(defaultConfig, "", "    ")
-		filePtr1.Write(data)
-		return false
+		//fmt.Println("不存在默认配置文件, 将创建默认配置文件 config.json")
+		//filePtr1, _ := os.Create("./config.json")
+		//defer filePtr1.Close()
+		//defaultConfig := []Config{{"localhost", "", 6379, 0, "default"}}
+		//data, _ := json.MarshalIndent(defaultConfig, "", "    ")
+		//filePtr1.Write(data)
+		return true
 	}
 
 	decoder := json.NewDecoder(filePtr)
@@ -199,12 +197,12 @@ func InitConfig() bool {
 }
 
 func SaveConfig() bool {
-	filePtr, err := os.Open("./config.json")
+	filePtr, err := os.OpenFile("./config.json", os.O_TRUNC|os.O_CREATE, 0666)
 	defer filePtr.Close()
-	decoder := json.NewDecoder(filePtr)
-	err = decoder.Decode(&RedisConfigs)
+	data, _ := json.MarshalIndent(RedisConfigs, "", "    ")
+	_, err = filePtr.Write(data)
 	if err != nil {
-		fmt.Println("配置文件解析失败", err.Error())
+		fmt.Println("保存配置文件失败", err.Error())
 		return false
 	}
 	return true
@@ -213,10 +211,6 @@ func SaveConfig() bool {
 func InitContainers() bool {
 	for _, config := range RedisConfigs {
 		AddContainer(config)
-	}
-	if len(ContainerMap) == 0 {
-		fmt.Println("没有可用的redis连接, 请检查config.json")
-		return false
 	}
 	return true
 }
@@ -236,7 +230,7 @@ func AddContainer(config Config) bool {
 		fmt.Println("redis连接错误", config.Ip, err.Error())
 		return false
 	}
-	container := &Container{config.Ip, config.Name, 0,config, client}
+	container := &Container{config, 0, client}
 	ContainerMap[config.Ip] = container
 	return true
 }
@@ -258,6 +252,15 @@ func UpdateContainer(config Config) bool {
 
 func DeleteContainer(ip string) {
 	delete(ContainerMap, ip)
+	index := 0
+	for ; index < len(RedisConfigs); {
+		if RedisConfigs[index].Ip == ip {
+			RedisConfigs = append(RedisConfigs[:index], RedisConfigs[index+1:]...)
+			continue
+		}
+		index++
+	}
+	SaveConfig()
 }
 
 func (c *Container) GetInfo() *RedisInfo {

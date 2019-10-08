@@ -8,10 +8,6 @@ import (
 	"redisgo/web"
 )
 
-var (
-	Version = "1.0.0"
-)
-
 func init() {
 	if !utils.InitConfig() {
 		os.Exit(-1)
@@ -25,14 +21,14 @@ func main() {
 	defer utils.SaveConfig()
 
 	app := cli.NewApp()
-	app.Name = "RedisGo"
-	app.Version = Version
+	app.Name = utils.GetName()
+	app.Version = utils.GetVersion()
 	liuzhuoling := cli.Author{
-		Name:  "liuzhuoling",
-		Email: "liuzhuoling2011@hotmail.com",
+		Name:  utils.GetAuthor(),
+		Email: utils.GetEmail(),
 	}
 	app.Authors = []cli.Author{liuzhuoling}
-	app.Description = "这个软件可以让你更好的管理/监控Redis"
+	app.Description = utils.GetDescription()
 
 	app.Action = func(c *cli.Context) {
 		fmt.Printf("打开浏览器, 输入 http://localhost:51299 查看效果\n")

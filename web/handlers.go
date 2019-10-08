@@ -52,6 +52,10 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 		port, _ := strconv.Atoi(r.Form.Get("port"))
 		db, _ := strconv.Atoi(r.Form.Get("db"))
 		container := utils.ContainerMap[ip]
+		if container == nil {
+			sendHttpErrorResponse(w, -1, "修改错误, IP不存在")
+			return
+		}
 		if container.Password != password || container.Port != port || container.Db != db {
 			if !utils.UpdateContainer(utils.Config{Ip:ip, Name:name, Password:password, Port:port, Db:db}) {
 				sendHttpErrorResponse(w, -1, "修改错误, 请检查redis配置")
@@ -61,6 +65,14 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 			container.Name = name
 		}
 		sendHttpResponse(w, "修改成功", utils.ContainerMap[ip])
+		for index, conf := range utils.RedisConfigs {
+			if conf.Ip == ip {
+				utils.RedisConfigs[index].Name = name
+				utils.RedisConfigs[index].Password = password
+				utils.RedisConfigs[index].Port = port
+				utils.RedisConfigs[index].Db = db
+			}
+		}
 		utils.SaveConfig()
 	case "add":
 		ip := r.Form.Get("ip")
@@ -70,6 +82,7 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 		db, _ := strconv.Atoi(r.Form.Get("db"))
 		if utils.AddContainer(utils.Config{Ip:ip, Name:name, Password:password, Port:port, Db:db}) {
 			sendHttpResponse(w, "添加成功", utils.ContainerMap[ip])
+			utils.RedisConfigs = append(utils.RedisConfigs, utils.Config{ip, password, port, db, name})
 			utils.SaveConfig()
 		} else {
 			sendHttpErrorResponse(w, -1, "添加错误, 请检查redis配置是否重复或者正确")

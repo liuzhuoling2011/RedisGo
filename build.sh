@@ -1,12 +1,8 @@
-name="redisgo"
-version=$1
+name=`jq '.StringFileInfo.ProductName' -r versioninfo.json`
+version=`jq '.StringFileInfo.ProductVersion' -r versioninfo.json`
 
 GOROOT=/usr/lib/go-1.10
 go=$GOROOT/bin/go
-
-if [ "$1" = "" ];then
-    version=1.0.0
-fi
 
 output="out/"
 
@@ -19,7 +15,7 @@ Build() {
     echo "Building $1..."
     export GOOS=$2 GOARCH=$3 GO386=sse2 CGO_ENABLED=0 GOARM=$4
     if [ $2 = "windows" ];then
-        ./goversioninfo -icon=assets/$name.ico -manifest="$name".exe.manifest -product-name="$name" -file-version="$version" -product-version="$version" -company=liuzhuoling -copyright="©2018 liuzhuoling" -o=resource_windows.syso
+        ./goversioninfo -o=resource_windows.syso versioninfo.json
         $go build -ldflags "-X main.Version=$version -s -w" -o "$output/$1/$name.exe"
         RicePack $1 $name.exe
     else
@@ -32,10 +28,7 @@ Build() {
 Pack() {
     cd $output
     zip -q -r "$1.zip" "$1"
-
-    # 删除
     rm -rf "$1"
-
     cd ..
 }
 
