@@ -55,7 +55,7 @@ func sendHttpErrorResponse(w http.ResponseWriter, rcode int, msg string) {
 		Msg:    msg,
 		Data:   "",
 	}
-	w.Write(response.JSON())
+	_, _ = w.Write(response.JSON())
 }
 
 func sendHttpResponse(w http.ResponseWriter, msg string, data interface{}) {
@@ -66,5 +66,5 @@ func sendHttpResponse(w http.ResponseWriter, msg string, data interface{}) {
 		Msg:    msg,
 		Data:   data,
 	}
-	w.Write(response.JSON())
+	_, _ = w.Write(response.JSON())
 }

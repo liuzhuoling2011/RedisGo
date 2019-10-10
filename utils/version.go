@@ -5,7 +5,7 @@ var (
 	version = "v1.0.0"
 	author = "zoranjojo"
 	email = "liuzhuoling2011@hotmail.com"
-	desc = "更优雅管理/监控Redis的工具"
+	desc = "RedisGo Web是为更优雅的监控/管理内网的Redis而倾心打造"
 )
 
 func GetName() string { return name }

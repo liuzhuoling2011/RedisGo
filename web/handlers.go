@@ -24,7 +24,7 @@ func RootHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func ContainerHandle(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	_ = r.ParseForm()
 	method := r.Form.Get("method")
 	switch method {
 	case "list":
@@ -87,5 +87,12 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 		} else {
 			sendHttpErrorResponse(w, -1, "添加错误, 请检查redis配置是否重复或者正确")
 		}
+	case "publish":
+		ip := r.Form.Get("ip")
+		key := r.Form.Get("key")
+		msg := r.Form.Get("msg")
+		container := utils.ContainerMap[ip]
+		container.PublishMsg(key, msg)
+		sendHttpResponse(w, key, msg)
 	}
 }

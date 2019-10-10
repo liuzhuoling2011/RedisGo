@@ -11,12 +11,12 @@ import (
 
 func WSHandler(conn *websocket.Conn) {
 	fmt.Printf("Websocket新建连接: %s -> %s\n", conn.RemoteAddr().String(), conn.LocalAddr().String())
-
+	redisChanMap := make(map[string] map[string] chan int)
 	for {
 		var reply string
 		if err := websocket.Message.Receive(conn, &reply); err != nil {
 			fmt.Println("Websocket连接断开:", err.Error())
-			conn.Close()
+			_ = conn.Close()
 			for _, c := range utils.ContainerMap {
 				c.Status = 0
 			}
@@ -29,17 +29,14 @@ func WSHandler(conn *websocket.Conn) {
 		}
 		rType, _ := rJson.Get("type").Int()
 		switch rType {
-		case 1:
+		case 1: // 查询info信息
 			ip, _ := rJson.Get("ip").String()
 			container := utils.ContainerMap[ip]
-			if container.Status == 1 {
-				continue
-			}
 			fmt.Println("收到查询info的命令, IP: " + ip)
 			go func() {
 				for {
 					d, _ := json.Marshal(container.GetInfo())
-					err := sendResponse(conn, 0, 0, ip, string(d))
+					err := sendResponse(conn, 1, 0, ip, string(d))
 					// 如果websocket断开, 退出协程
 					if err != nil {
 						return
@@ -47,20 +44,50 @@ func WSHandler(conn *websocket.Conn) {
 					time.Sleep(time.Second)
 				}
 			}()
-			container.Status = 1
+		case 2:
+			ip, _ := rJson.Get("ip").String()
+			channel, _ := rJson.Get("channel").String()
+			comm, _ := rJson.Get("command").String()
+			container := utils.ContainerMap[ip]
+			if comm == "open" {
+				fmt.Println("收到订阅的命令, IP: " + ip + " Channel: " + channel)
+				if redisChanMap[ip] == nil {
+					redisChanMap[ip] = make(map[string] chan int)
+				}
+				if redisChanMap[ip][channel] == nil {
+					redisChanMap[ip][channel] = make(chan int)
+				}
+				go func(command chan int) {
+					pubsub := container.Subscribe(channel)
+
+					// Wait for confirmation that subscription is created before publishing anything.
+					_, err := pubsub.Receive()
+					if err != nil {
+						panic(err)
+					}
+					_ = sendResponse(conn, 2, 0, channel, "")
+
+					// Go channel which receives messages.
+					ch := pubsub.Channel()
+					go func() {
+						for msg := range ch {
+							err := sendResponse(conn, 2, 1, msg.Channel, msg.Payload)
+							if err != nil {
+								_ = pubsub.Close()
+								return
+							}
+						}
+					}()
+					if _, ok := <-command; ok {
+						_ = pubsub.Close()
+						_ = sendResponse(conn, 2, -1, ip, channel)
+						return
+					}
+				}(redisChanMap[ip][channel])
+			} else if comm == "close" {
+				fmt.Println("收到取消订阅的命令, IP: " + ip + " Channel: " + channel)
+				redisChanMap[ip][channel] <- 88
+			}
 		}
-		//case 2:
-		//	WSDownload(conn, rJson)
-		//	if err != nil {
-		//		fmt.Println("WSDownload err:", err.Error())
-		//		continue
-		//	}
-		//case 3:
-		//	WSUpload(conn, rJson)
-		//	if err != nil {
-		//		fmt.Println("WSUpload err:", err.Error())
-		//		continue
-		//	}
-		//}
 	}
 }

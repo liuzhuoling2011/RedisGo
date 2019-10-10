@@ -31,17 +31,17 @@ func StartServer(port uint, access bool) error {
 }
 
 func indexPage(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	_ = r.ParseForm()
 
 	tmpl := boxTmplParse("index", "index.html")
-	tmpl.Execute(w, nil)
+	_ = tmpl.Execute(w, nil)
 }
 
 // boxTmplParse ricebox 载入文件内容, 并进行模板解析
 func boxTmplParse(name string, fileNames ...string) (tmpl *template.Template) {
 	tmpl = template.New(name)
 	for k := range fileNames {
-		tmpl.Parse(distBox.MustString(fileNames[k]))
+		_, _ = tmpl.Parse(distBox.MustString(fileNames[k]))
 	}
 	return
 }

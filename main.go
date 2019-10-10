@@ -9,12 +9,8 @@ import (
 )
 
 func init() {
-	if !utils.InitConfig() {
-		os.Exit(-1)
-	}
-	if !utils.InitContainers() {
-		os.Exit(-1)
-	}
+	if !utils.InitConfig() { os.Exit(-1) }
+	if !utils.InitContainers() { os.Exit(-1) }
 }
 
 func main() {
@@ -32,7 +28,7 @@ func main() {
 
 	app.Action = func(c *cli.Context) {
 		fmt.Printf("打开浏览器, 输入 http://localhost:51299 查看效果\n")
-		web.StartServer(51299, true)
+		_ = web.StartServer(51299, true)
 	}
 	app.Commands = []cli.Command{
 		{
@@ -58,5 +54,5 @@ func main() {
 			},
 		},
 	}
-	app.Run(os.Args)
+	_ = app.Run(os.Args)
 }

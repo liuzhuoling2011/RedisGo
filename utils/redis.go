@@ -177,15 +177,7 @@ var (
 func InitConfig() bool {
 	filePtr, err := os.Open("./config.json")
 	defer filePtr.Close()
-	if err != nil {
-		//fmt.Println("不存在默认配置文件, 将创建默认配置文件 config.json")
-		//filePtr1, _ := os.Create("./config.json")
-		//defer filePtr1.Close()
-		//defaultConfig := []Config{{"localhost", "", 6379, 0, "default"}}
-		//data, _ := json.MarshalIndent(defaultConfig, "", "    ")
-		//filePtr1.Write(data)
-		return true
-	}
+	if err != nil { return true }
 
 	decoder := json.NewDecoder(filePtr)
 	err = decoder.Decode(&RedisConfigs)
@@ -197,7 +189,7 @@ func InitConfig() bool {
 }
 
 func SaveConfig() bool {
-	filePtr, err := os.OpenFile("./config.json", os.O_TRUNC|os.O_CREATE, 0666)
+	filePtr, err := os.OpenFile("./config.json", os.O_TRUNC|os.O_CREATE|os.O_RDWR, 0666)
 	defer filePtr.Close()
 	data, _ := json.MarshalIndent(RedisConfigs, "", "    ")
 	_, err = filePtr.Write(data)
@@ -225,8 +217,8 @@ func AddContainer(config Config) bool {
 		Password: config.Password,
 		DB:       config.Db,
 	})
-	_, err := client.Ping().Result()
-	if err != nil {
+
+	if _, err := client.Ping().Result(); err != nil {
 		fmt.Println("redis连接错误", config.Ip, err.Error())
 		return false
 	}
@@ -241,8 +233,8 @@ func UpdateContainer(config Config) bool {
 		Password: config.Password,
 		DB:       config.Db,
 	})
-	_, err := client.Ping().Result()
-	if err != nil {
+
+	if _, err := client.Ping().Result(); err != nil {
 		fmt.Println("redis连接错误", config.Ip, err.Error())
 		return false
 	}
@@ -275,7 +267,7 @@ func (c *Container) GetInfo() *RedisInfo {
 		infom[args[0]] = args[1]
 	}
 	b, _ := json.Marshal(infom)
-	json.Unmarshal(b, &rinfo)
+	_ = json.Unmarshal(b, &rinfo)
 	return rinfo
 }
 
@@ -315,8 +307,17 @@ func (c *Container) GetClients() *RedisClientList {
 			clientm[pairs[0]] = pairs[1]
 		}
 		b, _ := json.Marshal(clientm)
-		json.Unmarshal(b, &rclient)
+		_ =json.Unmarshal(b, &rclient)
 		rcl = append(rcl, rclient)
 	}
 	return &rcl
+}
+
+func (c *Container) PublishMsg(key string, msg string) {
+	info := c.redis.Publish(key, msg)
+	fmt.Println(info)
+}
+
+func (c *Container) Subscribe(channels ...string) *redis.PubSub {
+	return c.redis.Subscribe(channels...)
 }
