@@ -321,3 +321,16 @@ func (c *Container) PublishMsg(key string, msg string) {
 func (c *Container) Subscribe(channels ...string) *redis.PubSub {
 	return c.redis.Subscribe(channels...)
 }
+
+func (c *Container) Execute(command string) interface{} {
+	args := strings.Split(command, " ")
+	var commands = make([]interface{}, len(args))
+	for i, v := range args {
+		commands[i] = v
+	}
+	info, _ := c.redis.Do(commands...).Result()
+	if info == nil {
+		return "执行错误, 请检查输入的Redis命令"
+	}
+	return info
+}

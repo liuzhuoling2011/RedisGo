@@ -94,5 +94,10 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 		container := utils.ContainerMap[ip]
 		container.PublishMsg(key, msg)
 		sendHttpResponse(w, key, msg)
+	case "execute":
+		ip := r.Form.Get("ip")
+		command := r.Form.Get("command")
+		container := utils.ContainerMap[ip]
+		sendHttpResponse(w, "", container.Execute(command))
 	}
 }
