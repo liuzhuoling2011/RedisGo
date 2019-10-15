@@ -318,8 +318,9 @@ func (c *Container) PublishMsg(key string, msg string) {
 	fmt.Println(info)
 }
 
-func (c *Container) Subscribe(channels ...string) *redis.PubSub {
-	return c.redis.Subscribe(channels...)
+func (c *Container) Subscribe(channel string) *redis.PubSub {
+	channels := strings.Split(channel, " ")
+	return c.redis.PSubscribe(channels...)
 }
 
 func (c *Container) Execute(command string) interface{} {

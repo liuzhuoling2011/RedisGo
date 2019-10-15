@@ -9,17 +9,20 @@ import (
 	"time"
 )
 
+var (
+	connMap = make(map[string] *websocket.Conn)
+	redisChanMap = make(map[string] map[string] chan int)
+)
+
 func WSHandler(conn *websocket.Conn) {
-	fmt.Printf("Websocket新建连接: %s -> %s\n", conn.RemoteAddr().String(), conn.LocalAddr().String())
-	redisChanMap := make(map[string] map[string] chan int)
+	seckey := conn.Request().Header.Get("Sec-Websocket-Key")
+	fmt.Printf("Websocket新建连接: %s -> %s %s\n", conn.RemoteAddr().String(), conn.LocalAddr().String(), seckey)
+	connMap[seckey] = conn
 	for {
 		var reply string
 		if err := websocket.Message.Receive(conn, &reply); err != nil {
 			fmt.Println("Websocket连接断开:", err.Error())
 			_ = conn.Close()
-			for _, c := range utils.ContainerMap {
-				c.Status = 0
-			}
 			return
 		}
 		rJson, err := simplejson.NewJson([]byte(reply))
