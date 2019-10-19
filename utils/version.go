@@ -2,7 +2,7 @@ package utils
 
 var (
 	name = "RedisGo"
-	version = "v1.1.0"
+	version = "v1.1.1"
 	author = "zoranjojo"
 	email = "liuzhuoling2011@hotmail.com"
 	desc = "RedisGo Web是为更优雅的监控/管理内网的Redis而倾心打造"
