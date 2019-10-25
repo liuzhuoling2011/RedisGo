@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"github.com/urfave/cli"
+	"log"
 	"os"
 	"redisgo/utils"
 	"redisgo/web"
@@ -27,7 +27,7 @@ func main() {
 	app.Description = utils.GetDescription()
 
 	app.Action = func(c *cli.Context) {
-		fmt.Printf("打开浏览器, 输入 http://localhost:51299 查看效果\n")
+		log.Println("打开浏览器, 输入 http://localhost:51299 查看效果\n")
 		_ = web.StartServer(51299, true)
 	}
 	app.Commands = []cli.Command{
@@ -36,8 +36,8 @@ func main() {
 			Usage:    "启用 web 服务",
 			Category: "其他",
 			Action: func(c *cli.Context) error {
-				fmt.Printf("打开浏览器, 输入: http://localhost:%d 查看效果\n", c.Uint("port"))
-				fmt.Println(web.StartServer(c.Uint("port"), c.Bool("access")))
+				log.Printf("打开浏览器, 输入: http://localhost:%d 查看效果\n", c.Uint("port"))
+				log.Println(web.StartServer(c.Uint("port"), c.Bool("access")))
 				return nil
 			},
 			Flags: []cli.Flag{

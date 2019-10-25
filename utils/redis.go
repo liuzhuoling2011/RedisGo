@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-redis/redis"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -182,7 +183,7 @@ func InitConfig() bool {
 	decoder := json.NewDecoder(filePtr)
 	err = decoder.Decode(&RedisConfigs)
 	if err != nil {
-		fmt.Println("配置文件解析失败", err.Error())
+		log.Println("配置文件解析失败", err.Error())
 		return false
 	}
 	return true
@@ -209,7 +210,7 @@ func InitContainers() bool {
 
 func AddContainer(config Config) bool {
 	if ContainerMap[config.Ip] != nil {
-		fmt.Println("redis ip 重复, 请检查", config.Ip)
+		log.Println("redis ip 重复, 请检查", config.Ip)
 		return false
 	}
 	client := redis.NewClient(&redis.Options{
@@ -219,7 +220,7 @@ func AddContainer(config Config) bool {
 	})
 
 	if _, err := client.Ping().Result(); err != nil {
-		fmt.Println("redis连接错误", config.Ip, err.Error())
+		log.Println("redis连接错误", config.Ip, err.Error())
 		return false
 	}
 	container := &Container{config, 0, client}
@@ -235,7 +236,7 @@ func UpdateContainer(config Config) bool {
 	})
 
 	if _, err := client.Ping().Result(); err != nil {
-		fmt.Println("redis连接错误", config.Ip, err.Error())
+		log.Println("redis连接错误", config.Ip, err.Error())
 		return false
 	}
 	ContainerMap[config.Ip].redis = client

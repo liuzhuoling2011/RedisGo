@@ -2,9 +2,9 @@ package web
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/bitly/go-simplejson"
 	"golang.org/x/net/websocket"
+	"log"
 	"redisgo/utils"
 	"time"
 )
@@ -16,18 +16,18 @@ var (
 
 func WSHandler(conn *websocket.Conn) {
 	seckey := conn.Request().Header.Get("Sec-Websocket-Key")
-	fmt.Printf("Websocket新建连接: %s -> %s %s\n", conn.RemoteAddr().String(), conn.LocalAddr().String(), seckey)
+	log.Println("Websocket新建连接:", conn.RemoteAddr().String(), "=>", conn.LocalAddr().String(), seckey)
 	connMap[seckey] = conn
 	for {
 		var reply string
 		if err := websocket.Message.Receive(conn, &reply); err != nil {
-			fmt.Println("Websocket连接断开:", err.Error())
+			log.Println("Websocket连接断开:", err.Error())
 			_ = conn.Close()
 			return
 		}
 		rJson, err := simplejson.NewJson([]byte(reply))
 		if err != nil {
-			fmt.Println("receive err:", err.Error())
+			log.Println("接收到的值Json解析错误:", err.Error())
 			return
 		}
 		rType, _ := rJson.Get("type").Int()
@@ -35,7 +35,7 @@ func WSHandler(conn *websocket.Conn) {
 		case 1: // 查询info信息
 			ip, _ := rJson.Get("ip").String()
 			container := utils.ContainerMap[ip]
-			fmt.Println("收到查询info的命令, IP: " + ip)
+			log.Println("收到查询info的命令, IP: " + ip)
 			go func() {
 				for {
 					d, _ := json.Marshal(container.GetInfo())
@@ -53,7 +53,7 @@ func WSHandler(conn *websocket.Conn) {
 			comm, _ := rJson.Get("command").String()
 			container := utils.ContainerMap[ip]
 			if comm == "open" {
-				fmt.Println("收到订阅的命令, IP: " + ip + " Channel: " + channel)
+				log.Println("收到订阅的命令, IP: " + ip + " Channel: " + channel)
 				if redisChanMap[ip] == nil {
 					redisChanMap[ip] = make(map[string] chan int)
 				}
@@ -81,14 +81,25 @@ func WSHandler(conn *websocket.Conn) {
 							}
 						}
 					}()
-					if _, ok := <-command; ok {
-						_ = pubsub.Close()
-						_ = sendResponse(conn, 2, -1, ip, channel)
-						return
+					for {
+						select {
+						case <- command:
+							_ = pubsub.Close()
+							_ = sendResponse(conn, 2, -1, ip, channel)
+						default:
+							// 发送心跳信号检测Websocket连接是否断开, 如果断开, 需要取消订阅该连接下的所有订阅
+							err := sendResponse(conn, 0, 0, "", "")
+							if err != nil {
+								log.Println("Websocket连接断开, 取消订阅 IP: " + ip + " Channel: " + channel)
+								_ = pubsub.Close()
+								return
+							}
+							time.Sleep(time.Minute)
+						}
 					}
 				}(redisChanMap[ip][channel])
 			} else if comm == "close" {
-				fmt.Println("收到取消订阅的命令, IP: " + ip + " Channel: " + channel)
+				log.Println("收到取消订阅的命令, IP: " + ip + " Channel: " + channel)
 				redisChanMap[ip][channel] <- 88
 			}
 		}
