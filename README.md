@@ -23,8 +23,8 @@
 ```
 打开终端:
 1. cd 到软件所在的目录
-2. chmod a+x BaiduPCS-Go
-3. ./BaiduPCS-Go
+2. chmod a+x RedisGo
+3. ./RedisGo
 4. 打开浏览器, 在地址栏输入: localhost:51299 就可以看到界面了
 ```
 
