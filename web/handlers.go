@@ -1,8 +1,10 @@
 package web
 
 import (
+	"io/ioutil"
 	"net/http"
 	"redisgo/utils"
+	"runtime"
 	"strconv"
 )
 
@@ -99,5 +101,40 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 		command := r.Form.Get("command")
 		container := utils.ContainerMap[ip]
 		sendHttpResponse(w, "", container.Execute(command))
+	}
+}
+
+func SystemHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r.ParseForm()
+	method := r.Form.Get("method")
+	switch method {
+	case "update":
+		url := "http://www.zoranjojo.top:9925/api/v1/update?goos=" + runtime.GOOS + "&goarch=" + runtime.GOARCH
+		url += "&version=" + utils.GetVersion() + "&prefix=" + utils.GetName()
+		resp, err := http.Get(url)
+		if err != nil {
+			sendHttpErrorResponse(w, -1, "查找版本更新失败")
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+
+		if err != nil {
+			sendHttpErrorResponse(w, -2, "查找版本更新失败")
+		}
+		sendHttpResponse(w, "", string(body))
+	case "notice":
+		url := "http://www.zoranjojo.top:9925/api/v1/notice?product=" + utils.GetName()
+		resp, err := http.Get(url)
+		if err != nil {
+			sendHttpErrorResponse(w, -1, "查找通知信息失败")
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+
+		if err != nil {
+			sendHttpErrorResponse(w, -2, "查找通知信息失败")
+		}
+
+		sendHttpResponse(w, "", string(body))
 	}
 }

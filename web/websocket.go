@@ -76,6 +76,7 @@ func WSHandler(conn *websocket.Conn) {
 						for msg := range ch {
 							err := sendResponse(conn, 2, 1, msg.Channel, msg.Payload)
 							if err != nil {
+								log.Println("已经取消, " + " Channel: " + channel)
 								_ = pubsub.Close()
 								return
 							}
@@ -85,6 +86,7 @@ func WSHandler(conn *websocket.Conn) {
 						select {
 						case <- command:
 							_ = pubsub.Close()
+							log.Println("已经取消, " + " Channel: " + channel)
 							_ = sendResponse(conn, 2, -1, ip, channel)
 						default:
 							// 发送心跳信号检测Websocket连接是否断开, 如果断开, 需要取消订阅该连接下的所有订阅
@@ -94,7 +96,7 @@ func WSHandler(conn *websocket.Conn) {
 								_ = pubsub.Close()
 								return
 							}
-							time.Sleep(time.Minute)
+							time.Sleep(time.Second)
 						}
 					}
 				}(redisChanMap[ip][channel])
