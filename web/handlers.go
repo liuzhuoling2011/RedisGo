@@ -138,3 +138,66 @@ func SystemHandle(w http.ResponseWriter, r *http.Request) {
 		sendHttpResponse(w, "", string(body))
 	}
 }
+
+func DataHandle(w http.ResponseWriter, r *http.Request) {
+	_ = r.ParseForm()
+	ip := r.Form.Get("ip")
+	key := r.Form.Get("key")
+	container := utils.ContainerMap[ip]
+	method := r.Form.Get("method")
+	switch method {
+	case "select_db":
+		db := r.Form.Get("db")
+		sendHttpResponse(w, "", container.SelectDB(db))
+	case "get_keys":
+		cursor, _ := strconv.Atoi(r.Form.Get("cursor"))
+		match := r.Form.Get("match")
+		count, _ := strconv.Atoi(r.Form.Get("count"))
+		sendHttpResponse(w, "", container.ScanKeys(cursor, match, count))
+	case "get_key_value":
+		rtype := r.Form.Get("type")
+		if rtype == "string" {
+			sendHttpResponse(w, "", container.GetStringValue(key))
+		} else if rtype == "list" {
+			sendHttpResponse(w, "", container.GetListValueAll(key))
+		} else if rtype == "hash" {
+			cursor, _ := strconv.Atoi(r.Form.Get("cursor"))
+			match := r.Form.Get("match")
+			count, _ := strconv.Atoi(r.Form.Get("count"))
+			sendHttpResponse(w, "", container.ScanHashValue(key, cursor, match, count))
+		} else if rtype == "set" {
+			sendHttpResponse(w, "", container.GetSetValueAll(key))
+		}
+	case "rm_key":
+		sendHttpResponse(w, "", container.DeleteKey(key))
+	case "update_ttl":
+		ttl, _ := strconv.Atoi(r.Form.Get("ttl"))
+		sendHttpResponse(w, "", container.SetTTL(key, ttl))
+	case "get_ttl":
+		sendHttpResponse(w, "", container.GetTTL(key))
+	case "rename":
+		newName := r.Form.Get("new_name")
+		sendHttpResponse(w, "", container.Rename(key, newName))
+	case "string_ops":
+		ops := r.Form.Get("ops")
+		if ops == "set" {
+			ttl, _ := strconv.Atoi(r.Form.Get("ttl"))
+			value := r.Form.Get("value")
+			sendHttpResponse(w, "", container.SetStringValue(key, value, ttl))
+		}
+	case "list_ops":
+		ops := r.Form.Get("ops")
+		if ops == "push" {
+			pos, _ := strconv.Atoi(r.Form.Get("pos"))
+			value := r.Form.Get("value")
+			sendHttpResponse(w, "", container.PushListValue(key, value, pos))
+		} else if ops == "delete" {
+			pos, _ := strconv.Atoi(r.Form.Get("pos"))
+			sendHttpResponse(w, "", container.DeleteListValue(key, pos))
+		} else if ops == "set" {
+			pos, _ := strconv.Atoi(r.Form.Get("pos"))
+			value := r.Form.Get("value")
+			sendHttpResponse(w, "", container.SetListValue(key, value, pos))
+		}
+	}
+}

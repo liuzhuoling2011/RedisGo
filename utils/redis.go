@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type RedisInfo struct {
@@ -336,3 +337,183 @@ func (c *Container) Execute(command string) interface{} {
 	}
 	return info
 }
+
+func(c *Container) Rename(key string, newName string) string {
+	t, _ := c.redis.Rename(key, newName).Result()
+	return t
+}
+
+func(c *Container) GetType(key string) string {
+	t, _ := c.redis.Type(key).Result()
+	return t
+}
+
+func(c *Container) GetTTL(key string) time.Duration {
+	t, _ := c.redis.TTL(key).Result()
+	return t
+}
+
+func(c *Container) SetTTL(key string, ttl int) bool {
+	var ret bool
+	if ttl == -1 {
+		ret, _ = c.redis.Persist(key).Result()
+	} else {
+		var seconds int = int(time.Second)
+		ret, _ = c.redis.Expire(key, time.Duration(ttl * seconds)).Result()
+	}
+	return ret
+}
+
+func(c *Container) DeleteKey(key string) int64 {
+	t, _ := c.redis.Del(key).Result()
+	return t
+}
+
+func(c *Container) GetLen(key string) int64 {
+	var ret int64
+	switch c.GetType(key) {
+	case "string":
+		ret, _ = c.redis.StrLen(key).Result()
+	case "list":
+		ret, _ = c.redis.LLen(key).Result()
+	case "hash":
+		ret, _ = c.redis.HLen(key).Result()
+	case "set":
+		ret, _ = c.redis.SCard(key).Result()
+	case "zset":
+		ret, _ = c.redis.ZCard(key).Result()
+	}
+	return ret
+}
+
+func (c *Container) SelectDB(db string) interface{} {
+	info, _ := c.redis.Do("select", db).Result()
+	return info
+}
+
+type KeyStruct struct {
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Len        int64  `json:"len"`
+	TTL        time.Duration `json:"ttl"`
+}
+
+type KeyScanStruct struct {
+	Cursor     uint64 `json:"cursor"`
+	Keys       []KeyStruct `json:"keys"`
+}
+
+func (c *Container) ScanKeys(cursor int, match string, count int) interface{} {
+	var keylist []KeyStruct
+	scursor := cursor
+	var scount = 0
+	for {
+		info, cur, _ := c.redis.Scan(uint64(scursor), match, int64(count)).Result()
+		for _, v := range info {
+			keylist = append(keylist, KeyStruct{Name: v, Type: c.GetType(v), TTL: c.GetTTL(v), Len: c.GetLen(v)})
+		}
+		scount += len(info)
+		scursor = int(cur)
+		if scount >= count || scursor == 0 {
+			break
+		}
+	}
+
+	return KeyScanStruct{Cursor: uint64(scursor), Keys: keylist}
+}
+
+func (c *Container) GetKeys(command string) interface{} {
+	var keylist []KeyStruct
+	info, _ := c.redis.Keys(command).Result()
+	for _, v := range info {
+		keylist = append(keylist, KeyStruct{Name: v, Type: c.GetType(v), TTL: c.GetTTL(v), Len: c.GetLen(v)})
+	}
+	return keylist
+}
+
+func (c *Container) GetStringValue(key string) string {
+	info, _ := c.redis.Get(key).Result()
+	return info
+}
+
+func (c *Container) SetStringValue(key string, value string, ttl int) string {
+	info, _ := c.redis.Set(key, value, time.Duration(ttl)).Result()
+	return info
+}
+
+func (c *Container) GetListValueAll(key string) []string {
+	info, _ := c.redis.LRange(key, 0, -1).Result()
+	return info
+}
+
+func (c *Container) GetListValueIndex(key string, pos int) string {
+	info, _ := c.redis.LIndex(key, int64(pos)).Result()
+	return info
+}
+
+func (c *Container) SetListValue(key string, value string, pos int) string {
+	info, _ := c.redis.LSet(key, int64(pos), value).Result()
+	return info
+}
+
+func (c *Container) DeleteListValue(key string, pos int) int64 {
+	v := c.GetListValueIndex(key, pos)
+	value := md5V(string(pos) + v)
+	c.SetListValue(key, value, pos)
+	info, _ := c.redis.LRem(key, 1, value).Result()
+	return info
+}
+
+func (c *Container) PushListValue(key string, value string, pos int) int64 {
+	var info int64
+	if pos == 0 {
+		info, _ = c.redis.LPush(key, value).Result()
+	} else if pos == -1{
+		info, _ = c.redis.RPush(key, value).Result()
+	}
+	return info
+}
+
+func (c *Container) GetHashValueAll(key string) map[string]string {
+	info, _ := c.redis.HGetAll(key).Result()
+	return info
+}
+
+type HashScanStruct struct {
+	Cursor     uint64 `json:"cursor"`
+	Keys       []string `json:"keys"`
+}
+
+func (c *Container) ScanHashValue(key string, cursor int, match string, count int) HashScanStruct {
+	var keylist []string
+	scursor := cursor
+	var scount = 0
+	for {
+		info, cur, _ := c.redis.HScan(key, uint64(scursor), match, int64(count)).Result()
+		for _, v := range info {
+			keylist = append(keylist, v)
+		}
+		scount += len(info) / 2
+		scursor = int(cur)
+		if scount >= count || scursor == 0 {
+			break
+		}
+	}
+
+	return HashScanStruct{Cursor: uint64(scursor), Keys: keylist}
+}
+
+func (c *Container) GetSetValueAll(key string) []string {
+	info, _ := c.redis.SMembers(key).Result()
+	return info
+}
+
+//func (c *Container) ScanSetValue(key string, cursor int, match string, count int) []string {
+//	info, cur, _ := c.redis.SScan(key, uint64(cursor), match, int64(count)).Result()
+//	return info
+//}
+
+//func (c *Container) GetZSetValueAll(key string) []string {
+//	info, _ := c.redis.SMembers(key).Result()
+//	return info
+//}

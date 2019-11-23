@@ -23,6 +23,7 @@ func StartServer(port uint, access bool) error {
 	http.HandleFunc("/index.html", middleware(indexPage))
 	http.HandleFunc("/containers", middleware(ContainerHandle))
 	http.HandleFunc("/system", middleware(SystemHandle))
+	http.HandleFunc("/data", middleware(DataHandle))
 
 	http.Handle("/ws", websocket.Handler(WSHandler))
 	if access {

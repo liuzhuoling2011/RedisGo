@@ -36,13 +36,13 @@ RicePack() {
     rice -i ./web append --exec "$output/$1/$2"
 }
 
+## Linux
+#Build $name-$version"-linux-86" linux 386
+Build $name-$version"-linux-amd64" linux amd64
+
 # OS X / macOS
 Build $name-$version"-mac-amd64" darwin amd64
 
 ## Windows
 #Build $name-$version"-windows-86" windows 386
 Build $name-$version"-windows-amd64" windows amd64
-
-## Linux
-#Build $name-$version"-linux-86" linux 386
-Build $name-$version"-linux-amd64" linux amd64
