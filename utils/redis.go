@@ -446,12 +446,17 @@ func (c *Container) GetListValueAll(key string) []string {
 	return info
 }
 
+func (c *Container) GetListValueRange(key string, start int, end int) []string {
+	info, _ := c.redis.LRange(key, int64(start), int64(end)).Result()
+	return info
+}
+
 func (c *Container) GetListValueIndex(key string, pos int) string {
 	info, _ := c.redis.LIndex(key, int64(pos)).Result()
 	return info
 }
 
-func (c *Container) SetListValue(key string, value string, pos int) string {
+func (c *Container) SetListValue(key string, pos int, value string) string {
 	info, _ := c.redis.LSet(key, int64(pos), value).Result()
 	return info
 }
@@ -459,7 +464,7 @@ func (c *Container) SetListValue(key string, value string, pos int) string {
 func (c *Container) DeleteListValue(key string, pos int) int64 {
 	v := c.GetListValueIndex(key, pos)
 	value := md5V(string(pos) + v)
-	c.SetListValue(key, value, pos)
+	c.SetListValue(key, pos, value)
 	info, _ := c.redis.LRem(key, 1, value).Result()
 	return info
 }
@@ -503,17 +508,77 @@ func (c *Container) ScanHashValue(key string, cursor int, match string, count in
 	return HashScanStruct{Cursor: uint64(scursor), Keys: keylist}
 }
 
+func (c *Container) DeleteHashValue(key string, hashKey string) int64 {
+	info, _ := c.redis.HDel(key, hashKey).Result()
+	return info
+}
+
+func (c *Container) SetHashValue(key string, hashKey string, value string) bool {
+	info, _ := c.redis.HSet(key, hashKey, value).Result()
+	return info
+}
+
 func (c *Container) GetSetValueAll(key string) []string {
 	info, _ := c.redis.SMembers(key).Result()
 	return info
 }
 
-//func (c *Container) ScanSetValue(key string, cursor int, match string, count int) []string {
-//	info, cur, _ := c.redis.SScan(key, uint64(cursor), match, int64(count)).Result()
-//	return info
-//}
+func (c *Container) ScanSetValue(key string, cursor int, match string, count int) HashScanStruct {
+	var keylist []string
+	scursor := cursor
+	var scount = 0
+	for {
+		info, cur, _ := c.redis.SScan(key, uint64(scursor), match, int64(count)).Result()
+		for _, v := range info {
+			keylist = append(keylist, v)
+		}
+		scount += len(info)
+		scursor = int(cur)
+		if scount >= count || scursor == 0 {
+			break
+		}
+	}
 
-//func (c *Container) GetZSetValueAll(key string) []string {
-//	info, _ := c.redis.SMembers(key).Result()
-//	return info
-//}
+	return HashScanStruct{Cursor: uint64(scursor), Keys: keylist}
+}
+
+func (c *Container) DeleteSetValue(key string, setKey string) int64 {
+	info, _ := c.redis.SRem(key, setKey).Result()
+	return info
+}
+
+func (c *Container) SetSetValue(key string, setKey string, value string) int64 {
+	c.DeleteSetValue(key, setKey)
+	info, _ := c.redis.SAdd(key, value).Result()
+	return info
+}
+
+func (c *Container) ScanZSetValue(key string, cursor int, match string, count int) HashScanStruct {
+	var keylist []string
+	scursor := cursor
+	var scount = 0
+	for {
+		info, cur, _ := c.redis.ZScan(key, uint64(scursor), match, int64(count)).Result()
+		for _, v := range info {
+			keylist = append(keylist, v)
+		}
+		scount += len(info) / 2
+		scursor = int(cur)
+		if scount >= count || scursor == 0 {
+			break
+		}
+	}
+
+	return HashScanStruct{Cursor: uint64(scursor), Keys: keylist}
+}
+
+func (c *Container) DeleteZSetValue(key string, zsetKey string) int64 {
+	info, _ := c.redis.ZRem(key, zsetKey).Result()
+	return info
+}
+
+func (c *Container) SetZSetValue(key string, zsetKey string, value float64) float64 {
+	oriValue, _ := c.redis.ZScore(key, zsetKey).Result()
+	info, _ := c.redis.ZIncrBy(key, value - oriValue, zsetKey).Result()
+	return info
+}

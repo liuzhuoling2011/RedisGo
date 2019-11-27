@@ -159,14 +159,24 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 		if rtype == "string" {
 			sendHttpResponse(w, "", container.GetStringValue(key))
 		} else if rtype == "list" {
-			sendHttpResponse(w, "", container.GetListValueAll(key))
+			start, _ := strconv.Atoi(r.Form.Get("start"))
+			end, _ := strconv.Atoi(r.Form.Get("end"))
+			sendHttpResponse(w, "", container.GetListValueRange(key, start, end))
 		} else if rtype == "hash" {
 			cursor, _ := strconv.Atoi(r.Form.Get("cursor"))
 			match := r.Form.Get("match")
 			count, _ := strconv.Atoi(r.Form.Get("count"))
 			sendHttpResponse(w, "", container.ScanHashValue(key, cursor, match, count))
 		} else if rtype == "set" {
-			sendHttpResponse(w, "", container.GetSetValueAll(key))
+			cursor, _ := strconv.Atoi(r.Form.Get("cursor"))
+			match := r.Form.Get("match")
+			count, _ := strconv.Atoi(r.Form.Get("count"))
+			sendHttpResponse(w, "", container.ScanSetValue(key, cursor, match, count))
+		} else if rtype == "zset" {
+			cursor, _ := strconv.Atoi(r.Form.Get("cursor"))
+			match := r.Form.Get("match")
+			count, _ := strconv.Atoi(r.Form.Get("count"))
+			sendHttpResponse(w, "", container.ScanZSetValue(key, cursor, match, count))
 		}
 	case "rm_key":
 		sendHttpResponse(w, "", container.DeleteKey(key))
@@ -197,7 +207,34 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 		} else if ops == "set" {
 			pos, _ := strconv.Atoi(r.Form.Get("pos"))
 			value := r.Form.Get("value")
-			sendHttpResponse(w, "", container.SetListValue(key, value, pos))
+			sendHttpResponse(w, "", container.SetListValue(key, pos, value))
+		}
+	case "hash_ops":
+		ops := r.Form.Get("ops")
+		hashKey := r.Form.Get("hash_key")
+		if ops == "delete" {
+			sendHttpResponse(w, "", container.DeleteHashValue(key, hashKey))
+		} else if ops == "set" {
+			value := r.Form.Get("value")
+			sendHttpResponse(w, "", container.SetHashValue(key, hashKey, value))
+		}
+	case "set_ops":
+		ops := r.Form.Get("ops")
+		setKey := r.Form.Get("set_key")
+		if ops == "delete" {
+			sendHttpResponse(w, "", container.DeleteSetValue(key, setKey))
+		} else if ops == "set" {
+			value := r.Form.Get("value")
+			sendHttpResponse(w, "", container.SetSetValue(key, setKey, value))
+		}
+	case "zset_ops":
+		ops := r.Form.Get("ops")
+		zsetKey := r.Form.Get("zset_key")
+		if ops == "delete" {
+			sendHttpResponse(w, "", container.DeleteZSetValue(key, zsetKey))
+		} else if ops == "set" {
+			value, _ := strconv.ParseFloat(r.Form.Get("value"), 64)
+			sendHttpResponse(w, "", container.SetZSetValue(key, zsetKey, value))
 		}
 	}
 }
