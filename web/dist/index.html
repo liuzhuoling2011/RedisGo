@@ -1,1 +1,57 @@
-<!DOCTYPE html><html lang=en><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><link rel=icon href=/dist/favicon.ico><title>RedisGo Web</title><link href=/dist/css/app.4fff3991.css rel=preload as=style><link href=/dist/css/chunk-vendors.4f1c55bc.css rel=preload as=style><link href=/dist/js/app.449567fe.js rel=preload as=script><link href=/dist/js/chunk-vendors.5bb96764.js rel=preload as=script><link href=/dist/css/chunk-vendors.4f1c55bc.css rel=stylesheet><link href=/dist/css/app.4fff3991.css rel=stylesheet></head><body><noscript><strong>We're sorry but redisgo_web doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div id=app></div><script src=/dist/js/chunk-vendors.5bb96764.js></script><script src=/dist/js/app.449567fe.js></script></body></html>
+<!DOCTYPE html><html lang=en><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><link rel=icon href=/dist/favicon.ico><title>RedisGo Web</title><style>#spinner {
+        margin: 45vh auto;
+        width: 60px;
+        height: 60px;
+        text-align: center;
+        font-size: 10px;
+      }
+
+      #spinner > div {
+        background-color: lightcoral;
+        height: 100%;
+        width: 6px;
+        margin-right: 2px;
+        display: inline-block;
+        -webkit-animation: stretchDelay 1.2s infinite ease-in-out;
+        animation: stretchDelay 1.2s infinite ease-in-out;
+      }
+
+      #spinner .rect2 {
+        -webkit-animation-delay: -1.1s;
+        animation-delay: -1.1s;
+      }
+
+      #spinner .rect3 {
+        -webkit-animation-delay: -1.0s;
+        animation-delay: -1.0s;
+      }
+
+      #spinner .rect4 {
+        -webkit-animation-delay: -0.9s;
+        animation-delay: -0.9s;
+      }
+
+      #spinner .rect5 {
+        -webkit-animation-delay: -0.8s;
+        animation-delay: -0.8s;
+      }
+
+      @-webkit-keyframes stretchDelay {
+        0%, 40%, 100% {
+          -webkit-transform: scaleY(0.4)
+        }
+        20% {
+          -webkit-transform: scaleY(1.0)
+        }
+      }
+
+      @keyframes stretchDelay {
+        0%, 40%, 100% {
+          transform: scaleY(0.4);
+          -webkit-transform: scaleY(0.4);
+        }
+        20% {
+          transform: scaleY(1.0);
+          -webkit-transform: scaleY(1.0);
+        }
+      }</style><link href=/dist/css/app.4fff3991.css rel=preload as=style><link href=/dist/css/chunk-vendors.a26b0225.css rel=preload as=style><link href=/dist/js/app.814f35e7.js rel=preload as=script><link href=/dist/js/chunk-vendors.ee3d2f54.js rel=preload as=script><link href=/dist/css/chunk-vendors.a26b0225.css rel=stylesheet><link href=/dist/css/app.4fff3991.css rel=stylesheet></head><body><noscript><strong>We're sorry but redisgo_web doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div id=app><div id=spinner><div class=rect1></div><div class=rect2></div><div class=rect3></div><div class=rect4></div><div class=rect5></div></div></div><script src=/dist/js/chunk-vendors.ee3d2f54.js></script><script src=/dist/js/app.814f35e7.js></script></body></html>

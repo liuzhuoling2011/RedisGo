@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type RedisInfo struct {
+type RedisInfo struct { 
 	// Server
 	Redis_version     string `json:"redis_version"`
 	Redis_git_sha1    string `json:"redis_git_sha_1"`
