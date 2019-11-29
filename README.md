@@ -2,10 +2,14 @@
 
 感谢使用RedisGo, 为更好监控/管理的Redis而倾心打造~
 
+- 对`大量的key和数据`进行优化 丝滑流畅~
+- 对`Pubsub`的使用体验做了大量优化, 谁用谁知道~
+
 有任何问题欢迎提[issue](https://github.com/liuzhuoling2011/RedisGo/issues), 良好的关注度和参与度有助于开源项目的长远发展~
 
 ![](http://qiniu.zoranjojo.top/RedisGo_Info.png)
 ![](http://qiniu.zoranjojo.top/RedisGo_Manage.png)
+![](http://qiniu.zoranjojo.top/RedisGo_Data.png)
 ![](http://qiniu.zoranjojo.top/RedisGo_Monitor.png)
 ![](http://qiniu.zoranjojo.top/RedisGo_Pubsub.png)
 ![](http://qiniu.zoranjojo.top/RedisGo_Terminal.png)
