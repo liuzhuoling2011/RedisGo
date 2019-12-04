@@ -6,8 +6,8 @@
         "CompanyEmail": "liuzhuoling2011@hotmail.com",
         "FileDescription": "更优雅管理/监控Redis的工具",
         "ProductName": "RedisGo",
-        "ProductVersion": "v2.0.0",
-        "FileVersion": "v2.0.0",
+        "ProductVersion": "v2.0.1",
+        "FileVersion": "v2.0.1",
         "InternalName": "",
         "LegalCopyright": "©2018-2020 zoranjojo",
         "LegalTrademarks": "",
@@ -25,7 +25,7 @@
         "FileVersion": {
             "Major": 2,
             "Minor": 0,
-            "Patch": 0,
+            "Patch": 1,
             "Build": 0
         }
     },
