@@ -8,6 +8,14 @@ import (
 	"strconv"
 )
 
+const (
+	cmdList   = "list"
+	cmdInfo   = "info"
+	cmdLog    = "logs"
+	cmdDelete = "delete"
+	cmdSet    = "set"
+)
+
 func middleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")             //允许访问所有域
@@ -29,13 +37,13 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 	method := r.Form.Get("method")
 	switch method {
-	case "list":
+	case cmdList:
 		sendHttpResponse(w, "", utils.ContainerMap)
-	case "info":
+	case cmdInfo:
 		ip := r.Form.Get("ip")
 		container := utils.ContainerMap[ip]
 		sendHttpResponse(w, "", container.GetInfo())
-	case "logs":
+	case cmdLog:
 		ip := r.Form.Get("ip")
 		container := utils.ContainerMap[ip]
 		sendHttpResponse(w, "", container.GetLog())
@@ -43,7 +51,7 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 		ip := r.Form.Get("ip")
 		container := utils.ContainerMap[ip]
 		sendHttpResponse(w, "", container.GetClients())
-	case "delete":
+	case cmdDelete:
 		ip := r.Form.Get("ip")
 		utils.DeleteContainer(ip)
 		sendHttpResponse(w, "删除成功", "")
@@ -59,7 +67,7 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if container.Password != password || container.Port != port || container.Db != db {
-			if !utils.UpdateContainer(utils.Config{Ip:ip, Name:name, Password:password, Port:port, Db:db}) {
+			if !utils.UpdateContainer(utils.Config{Ip: ip, Name: name, Password: password, Port: port, Db: db}) {
 				sendHttpErrorResponse(w, -1, "修改错误, 请检查redis配置")
 				return
 			}
@@ -82,7 +90,7 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 		password := r.Form.Get("password")
 		port, _ := strconv.Atoi(r.Form.Get("port"))
 		db, _ := strconv.Atoi(r.Form.Get("db"))
-		if utils.AddContainer(utils.Config{Ip:ip, Name:name, Password:password, Port:port, Db:db}) {
+		if utils.AddContainer(utils.Config{Ip: ip, Name: name, Password: password, Port: port, Db: db}) {
 			sendHttpResponse(w, "添加成功", utils.ContainerMap[ip])
 			utils.RedisConfigs = append(utils.RedisConfigs, utils.Config{ip, password, port, db, name})
 			utils.SaveConfig()
@@ -167,7 +175,7 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 			match := r.Form.Get("match")
 			count, _ := strconv.Atoi(r.Form.Get("count"))
 			sendHttpResponse(w, "", container.ScanHashValue(key, cursor, match, count))
-		} else if rtype == "set" {
+		} else if rtype == cmdSet {
 			cursor, _ := strconv.Atoi(r.Form.Get("cursor"))
 			match := r.Form.Get("match")
 			count, _ := strconv.Atoi(r.Form.Get("count"))
@@ -190,7 +198,7 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 		sendHttpResponse(w, "", container.Rename(key, newName))
 	case "string_ops":
 		ops := r.Form.Get("ops")
-		if ops == "set" {
+		if ops == cmdSet {
 			ttl, _ := strconv.Atoi(r.Form.Get("ttl"))
 			value := r.Form.Get("value")
 			sendHttpResponse(w, "", container.SetStringValue(key, value, ttl))
@@ -201,10 +209,10 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 			pos, _ := strconv.Atoi(r.Form.Get("pos"))
 			value := r.Form.Get("value")
 			sendHttpResponse(w, "", container.PushListValue(key, value, pos))
-		} else if ops == "delete" {
+		} else if ops == cmdDelete {
 			pos, _ := strconv.Atoi(r.Form.Get("pos"))
 			sendHttpResponse(w, "", container.DeleteListValue(key, pos))
-		} else if ops == "set" {
+		} else if ops == cmdSet {
 			pos, _ := strconv.Atoi(r.Form.Get("pos"))
 			value := r.Form.Get("value")
 			sendHttpResponse(w, "", container.SetListValue(key, pos, value))
@@ -212,27 +220,27 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 	case "hash_ops":
 		ops := r.Form.Get("ops")
 		hashKey := r.Form.Get("hash_key")
-		if ops == "delete" {
+		if ops == cmdDelete {
 			sendHttpResponse(w, "", container.DeleteHashValue(key, hashKey))
-		} else if ops == "set" {
+		} else if ops == cmdSet {
 			value := r.Form.Get("value")
 			sendHttpResponse(w, "", container.SetHashValue(key, hashKey, value))
 		}
 	case "set_ops":
 		ops := r.Form.Get("ops")
 		setKey := r.Form.Get("set_key")
-		if ops == "delete" {
+		if ops == cmdDelete {
 			sendHttpResponse(w, "", container.DeleteSetValue(key, setKey))
-		} else if ops == "set" {
+		} else if ops == cmdSet {
 			value := r.Form.Get("value")
 			sendHttpResponse(w, "", container.SetSetValue(key, setKey, value))
 		}
 	case "zset_ops":
 		ops := r.Form.Get("ops")
 		zsetKey := r.Form.Get("zset_key")
-		if ops == "delete" {
+		if ops == cmdDelete {
 			sendHttpResponse(w, "", container.DeleteZSetValue(key, zsetKey))
-		} else if ops == "set" {
+		} else if ops == cmdSet {
 			value, _ := strconv.ParseFloat(r.Form.Get("value"), 64)
 			sendHttpResponse(w, "", container.SetZSetValue(key, zsetKey, value))
 		}

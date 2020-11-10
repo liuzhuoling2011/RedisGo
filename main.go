@@ -1,16 +1,21 @@
 package main
 
 import (
-	"github.com/urfave/cli"
 	"log"
 	"os"
 	"redisgo/utils"
 	"redisgo/web"
+
+	"github.com/urfave/cli"
 )
 
 func init() {
-	if !utils.InitConfig() { os.Exit(-1) }
-	if !utils.InitContainers() { os.Exit(-1) }
+	if !utils.InitConfig() {
+		os.Exit(-1)
+	}
+	if !utils.InitContainers() {
+		os.Exit(-1)
+	}
 }
 
 func main() {
@@ -27,7 +32,7 @@ func main() {
 	app.Description = utils.GetDescription()
 
 	app.Action = func(c *cli.Context) {
-		log.Println("打开浏览器, 输入 http://localhost:51299 查看效果\n")
+		log.Println("打开浏览器, 输入 http://localhost:51299 查看效果")
 		_ = web.StartServer(51299, true)
 	}
 	app.Commands = []cli.Command{
@@ -47,8 +52,8 @@ func main() {
 					Value: 51299,
 				},
 				cli.BoolFlag{
-					Name:  "access",
-					Usage: "是否允许外网访问",
+					Name:   "access",
+					Usage:  "是否允许外网访问",
 					Hidden: false,
 				},
 			},

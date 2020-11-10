@@ -2,8 +2,9 @@ package web
 
 import (
 	"encoding/json"
-	"golang.org/x/net/websocket"
 	"net/http"
+
+	"golang.org/x/net/websocket"
 )
 
 type Response struct {

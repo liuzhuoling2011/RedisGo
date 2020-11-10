@@ -3,15 +3,16 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/go-redis/redis"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-redis/redis"
 )
 
-type RedisInfo struct { 
+type RedisInfo struct {
 	// Server
 	Redis_version     string `json:"redis_version"`
 	Redis_git_sha1    string `json:"redis_git_sha_1"`
@@ -29,7 +30,7 @@ type RedisInfo struct {
 	Hz                string `json:"hz"`
 	Lru_clock         string `json:"lru_clock"`
 	Executable        string `json:"executable"`
-	Config_file        string `json:"config_file"`
+	Config_file       string `json:"config_file"`
 	//Client
 	Connected_clients          string `json:"connected_clients"`
 	Client_longest_output_list string `json:"client_longest_output_list"`
@@ -107,16 +108,16 @@ type RedisInfo struct {
 	Cluster_enabled string `json:"cluster_enabled"`
 
 	// Keyspace
-	Db0 string `json:"db0"`
-	Db1 string `json:"db1"`
-	Db2 string `json:"db2"`
-	Db3 string `json:"db3"`
-	Db4 string `json:"db4"`
-	Db5 string `json:"db5"`
-	Db6 string `json:"db6"`
-	Db7 string `json:"db7"`
-	Db8 string `json:"db8"`
-	Db9 string `json:"db9"`
+	Db0  string `json:"db0"`
+	Db1  string `json:"db1"`
+	Db2  string `json:"db2"`
+	Db3  string `json:"db3"`
+	Db4  string `json:"db4"`
+	Db5  string `json:"db5"`
+	Db6  string `json:"db6"`
+	Db7  string `json:"db7"`
+	Db8  string `json:"db8"`
+	Db9  string `json:"db9"`
 	Db10 string `json:"db10"`
 	Db11 string `json:"db11"`
 	Db12 string `json:"db12"`
@@ -126,33 +127,33 @@ type RedisInfo struct {
 }
 
 type RedisLog struct {
-	Id          int64 `json:"id"`
-	Time        int64 `json:"time"`
-	Time_used   int64 `json:"time_used"`
-	Msg         string `json:"msg"`
+	Id        int64  `json:"id"`
+	Time      int64  `json:"time"`
+	Time_used int64  `json:"time_used"`
+	Msg       string `json:"msg"`
 }
 
 type RedisLogList []*RedisLog
 
 type RedisClient struct {
-	Id          string `json:"id"`
-	Addr        string `json:"addr"`
-	Fd          string `json:"fd"`
-	Name        string `json:"name"`
-	Age         string `json:"age"`
-	Idle        string `json:"idle"`
-	Flag        string `json:"flag"`
-	Db          string `json:"db"`
-	Sub         string `json:"sub"`
-	Psub        string `json:"psub"`
-	Multi       string `json:"multi"`
-	Qbuf        string `json:"qbuf"`
-	Qbuf_free   string `json:"qbuf-free"`
-	Obl         string `json:"obl"`
-	Oll         string `json:"oll"`
-	Omem        string `json:"omem"`
-	Events      string `json:"events"`
-	Cmd         string `json:"cmd"`
+	Id        string `json:"id"`
+	Addr      string `json:"addr"`
+	Fd        string `json:"fd"`
+	Name      string `json:"name"`
+	Age       string `json:"age"`
+	Idle      string `json:"idle"`
+	Flag      string `json:"flag"`
+	Db        string `json:"db"`
+	Sub       string `json:"sub"`
+	Psub      string `json:"psub"`
+	Multi     string `json:"multi"`
+	Qbuf      string `json:"qbuf"`
+	Qbuf_free string `json:"qbuf-free"`
+	Obl       string `json:"obl"`
+	Oll       string `json:"oll"`
+	Omem      string `json:"omem"`
+	Events    string `json:"events"`
+	Cmd       string `json:"cmd"`
 }
 
 type RedisClientList []*RedisClient
@@ -167,8 +168,8 @@ type Config struct {
 
 type Container struct {
 	Config
-	Status     uint8  `json:"status"`
-	redis      *redis.Client
+	Status uint8 `json:"status"`
+	redis  *redis.Client
 }
 
 var (
@@ -179,7 +180,9 @@ var (
 func InitConfig() bool {
 	filePtr, err := os.Open("./config.json")
 	defer filePtr.Close()
-	if err != nil { return true }
+	if err != nil {
+		return true
+	}
 
 	decoder := json.NewDecoder(filePtr)
 	err = decoder.Decode(&RedisConfigs)
@@ -247,7 +250,7 @@ func UpdateContainer(config Config) bool {
 func DeleteContainer(ip string) {
 	delete(ContainerMap, ip)
 	index := 0
-	for ; index < len(RedisConfigs); {
+	for index < len(RedisConfigs) {
 		if RedisConfigs[index].Ip == ip {
 			RedisConfigs = append(RedisConfigs[:index], RedisConfigs[index+1:]...)
 			continue
@@ -309,7 +312,7 @@ func (c *Container) GetClients() *RedisClientList {
 			clientm[pairs[0]] = pairs[1]
 		}
 		b, _ := json.Marshal(clientm)
-		_ =json.Unmarshal(b, &rclient)
+		_ = json.Unmarshal(b, &rclient)
 		rcl = append(rcl, rclient)
 	}
 	return &rcl
@@ -338,38 +341,38 @@ func (c *Container) Execute(command string) interface{} {
 	return info
 }
 
-func(c *Container) Rename(key string, newName string) string {
+func (c *Container) Rename(key string, newName string) string {
 	t, _ := c.redis.Rename(key, newName).Result()
 	return t
 }
 
-func(c *Container) GetType(key string) string {
+func (c *Container) GetType(key string) string {
 	t, _ := c.redis.Type(key).Result()
 	return t
 }
 
-func(c *Container) GetTTL(key string) time.Duration {
+func (c *Container) GetTTL(key string) time.Duration {
 	t, _ := c.redis.TTL(key).Result()
 	return t
 }
 
-func(c *Container) SetTTL(key string, ttl int) bool {
+func (c *Container) SetTTL(key string, ttl int) bool {
 	var ret bool
 	if ttl == -1 {
 		ret, _ = c.redis.Persist(key).Result()
 	} else {
 		var seconds int = int(time.Second)
-		ret, _ = c.redis.Expire(key, time.Duration(ttl * seconds)).Result()
+		ret, _ = c.redis.Expire(key, time.Duration(ttl*seconds)).Result()
 	}
 	return ret
 }
 
-func(c *Container) DeleteKey(key string) int64 {
+func (c *Container) DeleteKey(key string) int64 {
 	t, _ := c.redis.Del(key).Result()
 	return t
 }
 
-func(c *Container) GetLen(key string) int64 {
+func (c *Container) GetLen(key string) int64 {
 	var ret int64
 	switch c.GetType(key) {
 	case "string":
@@ -392,15 +395,15 @@ func (c *Container) SelectDB(db string) interface{} {
 }
 
 type KeyStruct struct {
-	Name       string `json:"name"`
-	Type       string `json:"type"`
-	Len        int64  `json:"len"`
-	TTL        time.Duration `json:"ttl"`
+	Name string        `json:"name"`
+	Type string        `json:"type"`
+	Len  int64         `json:"len"`
+	TTL  time.Duration `json:"ttl"`
 }
 
 type KeyScanStruct struct {
-	Cursor     uint64 `json:"cursor"`
-	Keys       []KeyStruct `json:"keys"`
+	Cursor uint64      `json:"cursor"`
+	Keys   []KeyStruct `json:"keys"`
 }
 
 func (c *Container) ScanKeys(cursor int, match string, count int) interface{} {
@@ -473,7 +476,7 @@ func (c *Container) PushListValue(key string, value string, pos int) int64 {
 	var info int64
 	if pos == 0 {
 		info, _ = c.redis.LPush(key, value).Result()
-	} else if pos == -1{
+	} else if pos == -1 {
 		info, _ = c.redis.RPush(key, value).Result()
 	}
 	return info
@@ -485,8 +488,8 @@ func (c *Container) GetHashValueAll(key string) map[string]string {
 }
 
 type HashScanStruct struct {
-	Cursor     uint64 `json:"cursor"`
-	Keys       []string `json:"keys"`
+	Cursor uint64   `json:"cursor"`
+	Keys   []string `json:"keys"`
 }
 
 func (c *Container) ScanHashValue(key string, cursor int, match string, count int) HashScanStruct {
@@ -579,6 +582,6 @@ func (c *Container) DeleteZSetValue(key string, zsetKey string) int64 {
 
 func (c *Container) SetZSetValue(key string, zsetKey string, value float64) float64 {
 	oriValue, _ := c.redis.ZScore(key, zsetKey).Result()
-	info, _ := c.redis.ZIncrBy(key, value - oriValue, zsetKey).Result()
+	info, _ := c.redis.ZIncrBy(key, value-oriValue, zsetKey).Result()
 	return info
 }
