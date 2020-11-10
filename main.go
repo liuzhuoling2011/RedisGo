@@ -1,16 +1,21 @@
 package main
 
 import (
-	"github.com/urfave/cli"
 	"log"
 	"os"
 	"redisgo/utils"
 	"redisgo/web"
+
+	"github.com/urfave/cli"
 )
 
 func init() {
-	if !utils.InitConfig() { os.Exit(-1) }
-	if !utils.InitContainers() { os.Exit(-1) }
+	if !utils.InitConfig() {
+		os.Exit(-1)
+	}
+	if !utils.InitContainers() {
+		os.Exit(-1)
+	}
 }
 
 func main() {
@@ -47,8 +52,8 @@ func main() {
 					Value: 51299,
 				},
 				cli.BoolFlag{
-					Name:  "access",
-					Usage: "是否允许外网访问",
+					Name:   "access",
+					Usage:  "是否允许外网访问",
 					Hidden: false,
 				},
 			},
