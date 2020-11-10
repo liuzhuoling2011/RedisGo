@@ -1,7 +1,5 @@
 log/
 logs/
-polaris/
-app/eros/cli/code/
 vendor/
 .vscode
 composer.lock

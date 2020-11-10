@@ -7,8 +7,6 @@ linters-settings:
     min-occurrences: 2
   gocyclo:
     min-complexity: 20
-  goimports:
-    #local-prefixes: git.code.oa.com
   golint:
     min-confidence: 0
   govet:
