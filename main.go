@@ -32,7 +32,7 @@ func main() {
 	app.Description = utils.GetDescription()
 
 	app.Action = func(c *cli.Context) {
-		log.Println("打开浏览器, 输入 http://localhost:51299 查看效果\n")
+		log.Println("打开浏览器, 输入 http://localhost:51299 查看效果")
 		_ = web.StartServer(51299, true)
 	}
 	app.Commands = []cli.Command{

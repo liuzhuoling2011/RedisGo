@@ -2,16 +2,17 @@ package web
 
 import (
 	"encoding/json"
-	"github.com/bitly/go-simplejson"
-	"golang.org/x/net/websocket"
 	"log"
 	"redisgo/utils"
 	"time"
+
+	"github.com/bitly/go-simplejson"
+	"golang.org/x/net/websocket"
 )
 
 var (
-	connMap = make(map[string] *websocket.Conn)
-	redisChanMap = make(map[string] map[string] chan int)
+	connMap      = make(map[string]*websocket.Conn)
+	redisChanMap = make(map[string]map[string]chan int)
 )
 
 func WSHandler(conn *websocket.Conn) {
@@ -55,7 +56,7 @@ func WSHandler(conn *websocket.Conn) {
 			if comm == "open" {
 				log.Println("收到订阅的命令, IP: " + ip + " Channel: " + channel)
 				if redisChanMap[ip] == nil {
-					redisChanMap[ip] = make(map[string] chan int)
+					redisChanMap[ip] = make(map[string]chan int)
 				}
 				if redisChanMap[ip][channel] == nil {
 					redisChanMap[ip][channel] = make(chan int)
@@ -84,7 +85,7 @@ func WSHandler(conn *websocket.Conn) {
 					}()
 					for {
 						select {
-						case <- command:
+						case <-command:
 							_ = pubsub.Close()
 							log.Println("已经取消, " + " Channel: " + channel)
 							_ = sendResponse(conn, 2, -1, ip, channel)

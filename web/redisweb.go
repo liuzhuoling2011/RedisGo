@@ -2,11 +2,12 @@ package web
 
 import (
 	"fmt"
-	rice "github.com/GeertJohan/go.rice"
-	"golang.org/x/net/websocket"
 	"html/template"
 	"log"
 	"net/http"
+
+	rice "github.com/GeertJohan/go.rice"
+	"golang.org/x/net/websocket"
 )
 
 var distBox *rice.Box
