@@ -158,6 +158,7 @@ type RedisClient struct {
 type RedisClientList []*RedisClient
 
 type Config struct {
+	Id       string `json:"id"`
 	Ip       string `json:"ip"`
 	Password string `json:"password"`
 	Port     int    `json:"port"`
@@ -167,8 +168,8 @@ type Config struct {
 
 type Container struct {
 	Config
-	Status     uint8  `json:"status"`
-	redis      *redis.Client
+	Status uint8  `json:"status"`
+	Redis  *redis.Client
 }
 
 var (
@@ -204,28 +205,31 @@ func SaveConfig() bool {
 
 func InitContainers() bool {
 	for _, config := range RedisConfigs {
-		AddContainer(config)
+		AddContainer(config, false)
 	}
 	return true
 }
 
-func AddContainer(config Config) bool {
-	if ContainerMap[config.Ip] != nil {
-		log.Println("redis ip 重复, 请检查", config.Ip)
+func AddContainer(config Config, apiFlag bool) bool {
+	if ContainerMap[config.Id] != nil {
+		log.Println("redis id 重复, 请检查", config.Id)
 		return false
 	}
 	client := redis.NewClient(&redis.Options{
-		Addr:     config.Ip + ":" + strconv.Itoa(config.Port),
+		Addr:     config.Id,
 		Password: config.Password,
 		DB:       config.Db,
 	})
 
-	if _, err := client.Ping().Result(); err != nil {
-		log.Println("redis连接错误", config.Ip, err.Error())
-		return false
-	}
 	container := &Container{config, 0, client}
-	ContainerMap[config.Ip] = container
+	if _, err := client.Ping().Result(); err != nil {
+		log.Println("redis连接错误", config.Id, err.Error())
+		container.Status = 1
+		if apiFlag {
+			return false
+		}
+	}
+	ContainerMap[config.Id] = container
 	return true
 }
 
@@ -240,15 +244,15 @@ func UpdateContainer(config Config) bool {
 		log.Println("redis连接错误", config.Ip, err.Error())
 		return false
 	}
-	ContainerMap[config.Ip].redis = client
+	ContainerMap[config.Id].Redis = client
 	return true
 }
 
-func DeleteContainer(ip string) {
-	delete(ContainerMap, ip)
+func DeleteContainer(id string) {
+	delete(ContainerMap, id)
 	index := 0
 	for ; index < len(RedisConfigs); {
-		if RedisConfigs[index].Ip == ip {
+		if RedisConfigs[index].Id == id {
 			RedisConfigs = append(RedisConfigs[:index], RedisConfigs[index+1:]...)
 			continue
 		}
@@ -258,7 +262,7 @@ func DeleteContainer(ip string) {
 }
 
 func (c *Container) GetInfo() *RedisInfo {
-	infos := strings.Split(c.redis.Info().String(), "\r\n")
+	infos := strings.Split(c.Redis.Info().String(), "\r\n")
 	rinfo := &RedisInfo{}
 	infom := make(map[string]interface{})
 	for _, line := range infos {
@@ -275,7 +279,7 @@ func (c *Container) GetInfo() *RedisInfo {
 
 func (c *Container) GetLog() *RedisLogList {
 	rll := RedisLogList{}
-	logs, _ := c.redis.Do("SLOWLOG", "GET", "120").Result()
+	logs, _ := c.Redis.Do("SLOWLOG", "GET", "120").Result()
 	if logs_interfaces, ok := logs.([]interface{}); ok {
 		for _, logsi := range logs_interfaces {
 			if log, ok := logsi.([]interface{}); ok {
@@ -293,7 +297,7 @@ func (c *Container) GetLog() *RedisLogList {
 
 func (c *Container) GetClients() *RedisClientList {
 	rcl := RedisClientList{}
-	infos := strings.Split(c.redis.ClientList().String(), "\n")
+	infos := strings.Split(c.Redis.ClientList().String(), "\n")
 	for _, line := range infos {
 		if line == "" {
 			continue
@@ -316,13 +320,13 @@ func (c *Container) GetClients() *RedisClientList {
 }
 
 func (c *Container) PublishMsg(key string, msg string) {
-	info := c.redis.Publish(key, msg)
+	info := c.Redis.Publish(key, msg)
 	fmt.Println(info)
 }
 
 func (c *Container) Subscribe(channel string) *redis.PubSub {
 	channels := strings.Split(channel, " ")
-	return c.redis.PSubscribe(channels...)
+	return c.Redis.PSubscribe(channels...)
 }
 
 func (c *Container) Execute(command string) interface{} {
@@ -331,7 +335,7 @@ func (c *Container) Execute(command string) interface{} {
 	for i, v := range args {
 		commands[i] = v
 	}
-	info, _ := c.redis.Do(commands...).Result()
+	info, _ := c.Redis.Do(commands...).Result()
 	if info == nil {
 		return "执行错误, 请检查输入的Redis命令"
 	}
@@ -339,33 +343,33 @@ func (c *Container) Execute(command string) interface{} {
 }
 
 func(c *Container) Rename(key string, newName string) string {
-	t, _ := c.redis.Rename(key, newName).Result()
+	t, _ := c.Redis.Rename(key, newName).Result()
 	return t
 }
 
 func(c *Container) GetType(key string) string {
-	t, _ := c.redis.Type(key).Result()
+	t, _ := c.Redis.Type(key).Result()
 	return t
 }
 
 func(c *Container) GetTTL(key string) time.Duration {
-	t, _ := c.redis.TTL(key).Result()
+	t, _ := c.Redis.TTL(key).Result()
 	return t
 }
 
 func(c *Container) SetTTL(key string, ttl int) bool {
 	var ret bool
 	if ttl == -1 {
-		ret, _ = c.redis.Persist(key).Result()
+		ret, _ = c.Redis.Persist(key).Result()
 	} else {
 		var seconds int = int(time.Second)
-		ret, _ = c.redis.Expire(key, time.Duration(ttl * seconds)).Result()
+		ret, _ = c.Redis.Expire(key, time.Duration(ttl * seconds)).Result()
 	}
 	return ret
 }
 
 func(c *Container) DeleteKey(key string) int64 {
-	t, _ := c.redis.Del(key).Result()
+	t, _ := c.Redis.Del(key).Result()
 	return t
 }
 
@@ -373,21 +377,21 @@ func(c *Container) GetLen(key string) int64 {
 	var ret int64
 	switch c.GetType(key) {
 	case "string":
-		ret, _ = c.redis.StrLen(key).Result()
+		ret, _ = c.Redis.StrLen(key).Result()
 	case "list":
-		ret, _ = c.redis.LLen(key).Result()
+		ret, _ = c.Redis.LLen(key).Result()
 	case "hash":
-		ret, _ = c.redis.HLen(key).Result()
+		ret, _ = c.Redis.HLen(key).Result()
 	case "set":
-		ret, _ = c.redis.SCard(key).Result()
+		ret, _ = c.Redis.SCard(key).Result()
 	case "zset":
-		ret, _ = c.redis.ZCard(key).Result()
+		ret, _ = c.Redis.ZCard(key).Result()
 	}
 	return ret
 }
 
 func (c *Container) SelectDB(db string) interface{} {
-	info, _ := c.redis.Do("select", db).Result()
+	info, _ := c.Redis.Do("select", db).Result()
 	return info
 }
 
@@ -408,7 +412,7 @@ func (c *Container) ScanKeys(cursor int, match string, count int) interface{} {
 	scursor := cursor
 	var scount = 0
 	for {
-		info, cur, _ := c.redis.Scan(uint64(scursor), match, int64(count)).Result()
+		info, cur, _ := c.Redis.Scan(uint64(scursor), match, int64(count)).Result()
 		for _, v := range info {
 			keylist = append(keylist, KeyStruct{Name: v, Type: c.GetType(v), TTL: c.GetTTL(v), Len: c.GetLen(v)})
 		}
@@ -424,7 +428,7 @@ func (c *Container) ScanKeys(cursor int, match string, count int) interface{} {
 
 func (c *Container) GetKeys(command string) interface{} {
 	var keylist []KeyStruct
-	info, _ := c.redis.Keys(command).Result()
+	info, _ := c.Redis.Keys(command).Result()
 	for _, v := range info {
 		keylist = append(keylist, KeyStruct{Name: v, Type: c.GetType(v), TTL: c.GetTTL(v), Len: c.GetLen(v)})
 	}
@@ -432,32 +436,32 @@ func (c *Container) GetKeys(command string) interface{} {
 }
 
 func (c *Container) GetStringValue(key string) string {
-	info, _ := c.redis.Get(key).Result()
+	info, _ := c.Redis.Get(key).Result()
 	return info
 }
 
 func (c *Container) SetStringValue(key string, value string, ttl int) string {
-	info, _ := c.redis.Set(key, value, time.Duration(ttl)).Result()
+	info, _ := c.Redis.Set(key, value, time.Duration(ttl)).Result()
 	return info
 }
 
 func (c *Container) GetListValueAll(key string) []string {
-	info, _ := c.redis.LRange(key, 0, -1).Result()
+	info, _ := c.Redis.LRange(key, 0, -1).Result()
 	return info
 }
 
 func (c *Container) GetListValueRange(key string, start int, end int) []string {
-	info, _ := c.redis.LRange(key, int64(start), int64(end)).Result()
+	info, _ := c.Redis.LRange(key, int64(start), int64(end)).Result()
 	return info
 }
 
 func (c *Container) GetListValueIndex(key string, pos int) string {
-	info, _ := c.redis.LIndex(key, int64(pos)).Result()
+	info, _ := c.Redis.LIndex(key, int64(pos)).Result()
 	return info
 }
 
 func (c *Container) SetListValue(key string, pos int, value string) string {
-	info, _ := c.redis.LSet(key, int64(pos), value).Result()
+	info, _ := c.Redis.LSet(key, int64(pos), value).Result()
 	return info
 }
 
@@ -465,22 +469,22 @@ func (c *Container) DeleteListValue(key string, pos int) int64 {
 	v := c.GetListValueIndex(key, pos)
 	value := md5V(string(pos) + v)
 	c.SetListValue(key, pos, value)
-	info, _ := c.redis.LRem(key, 1, value).Result()
+	info, _ := c.Redis.LRem(key, 1, value).Result()
 	return info
 }
 
 func (c *Container) PushListValue(key string, value string, pos int) int64 {
 	var info int64
 	if pos == 0 {
-		info, _ = c.redis.LPush(key, value).Result()
+		info, _ = c.Redis.LPush(key, value).Result()
 	} else if pos == -1{
-		info, _ = c.redis.RPush(key, value).Result()
+		info, _ = c.Redis.RPush(key, value).Result()
 	}
 	return info
 }
 
 func (c *Container) GetHashValueAll(key string) map[string]string {
-	info, _ := c.redis.HGetAll(key).Result()
+	info, _ := c.Redis.HGetAll(key).Result()
 	return info
 }
 
@@ -494,7 +498,7 @@ func (c *Container) ScanHashValue(key string, cursor int, match string, count in
 	scursor := cursor
 	var scount = 0
 	for {
-		info, cur, _ := c.redis.HScan(key, uint64(scursor), match, int64(count)).Result()
+		info, cur, _ := c.Redis.HScan(key, uint64(scursor), match, int64(count)).Result()
 		for _, v := range info {
 			keylist = append(keylist, v)
 		}
@@ -509,17 +513,17 @@ func (c *Container) ScanHashValue(key string, cursor int, match string, count in
 }
 
 func (c *Container) DeleteHashValue(key string, hashKey string) int64 {
-	info, _ := c.redis.HDel(key, hashKey).Result()
+	info, _ := c.Redis.HDel(key, hashKey).Result()
 	return info
 }
 
 func (c *Container) SetHashValue(key string, hashKey string, value string) bool {
-	info, _ := c.redis.HSet(key, hashKey, value).Result()
+	info, _ := c.Redis.HSet(key, hashKey, value).Result()
 	return info
 }
 
 func (c *Container) GetSetValueAll(key string) []string {
-	info, _ := c.redis.SMembers(key).Result()
+	info, _ := c.Redis.SMembers(key).Result()
 	return info
 }
 
@@ -528,7 +532,7 @@ func (c *Container) ScanSetValue(key string, cursor int, match string, count int
 	scursor := cursor
 	var scount = 0
 	for {
-		info, cur, _ := c.redis.SScan(key, uint64(scursor), match, int64(count)).Result()
+		info, cur, _ := c.Redis.SScan(key, uint64(scursor), match, int64(count)).Result()
 		for _, v := range info {
 			keylist = append(keylist, v)
 		}
@@ -543,13 +547,13 @@ func (c *Container) ScanSetValue(key string, cursor int, match string, count int
 }
 
 func (c *Container) DeleteSetValue(key string, setKey string) int64 {
-	info, _ := c.redis.SRem(key, setKey).Result()
+	info, _ := c.Redis.SRem(key, setKey).Result()
 	return info
 }
 
 func (c *Container) SetSetValue(key string, setKey string, value string) int64 {
 	c.DeleteSetValue(key, setKey)
-	info, _ := c.redis.SAdd(key, value).Result()
+	info, _ := c.Redis.SAdd(key, value).Result()
 	return info
 }
 
@@ -558,7 +562,7 @@ func (c *Container) ScanZSetValue(key string, cursor int, match string, count in
 	scursor := cursor
 	var scount = 0
 	for {
-		info, cur, _ := c.redis.ZScan(key, uint64(scursor), match, int64(count)).Result()
+		info, cur, _ := c.Redis.ZScan(key, uint64(scursor), match, int64(count)).Result()
 		for _, v := range info {
 			keylist = append(keylist, v)
 		}
@@ -573,12 +577,12 @@ func (c *Container) ScanZSetValue(key string, cursor int, match string, count in
 }
 
 func (c *Container) DeleteZSetValue(key string, zsetKey string) int64 {
-	info, _ := c.redis.ZRem(key, zsetKey).Result()
+	info, _ := c.Redis.ZRem(key, zsetKey).Result()
 	return info
 }
 
 func (c *Container) SetZSetValue(key string, zsetKey string, value float64) float64 {
-	oriValue, _ := c.redis.ZScore(key, zsetKey).Result()
-	info, _ := c.redis.ZIncrBy(key, value - oriValue, zsetKey).Result()
+	oriValue, _ := c.Redis.ZScore(key, zsetKey).Result()
+	info, _ := c.Redis.ZIncrBy(key, value - oriValue, zsetKey).Result()
 	return info
 }

@@ -28,24 +28,30 @@ func RootHandle(w http.ResponseWriter, r *http.Request) {
 func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
 	method := r.Form.Get("method")
+	id := r.Form.Get("id")
 	switch method {
 	case "list":
 		sendHttpResponse(w, "", utils.ContainerMap)
+	case "check":
+		for _, v := range utils.ContainerMap {
+			if _, err := v.Redis.Ping().Result(); err != nil {
+				v.Status = 1
+			} else {
+				v.Status = 0
+			}
+		}
+		sendHttpResponse(w, "", utils.ContainerMap)
 	case "info":
-		ip := r.Form.Get("ip")
-		container := utils.ContainerMap[ip]
+		container := utils.ContainerMap[id]
 		sendHttpResponse(w, "", container.GetInfo())
 	case "logs":
-		ip := r.Form.Get("ip")
-		container := utils.ContainerMap[ip]
+		container := utils.ContainerMap[id]
 		sendHttpResponse(w, "", container.GetLog())
 	case "clients":
-		ip := r.Form.Get("ip")
-		container := utils.ContainerMap[ip]
+		container := utils.ContainerMap[id]
 		sendHttpResponse(w, "", container.GetClients())
 	case "delete":
-		ip := r.Form.Get("ip")
-		utils.DeleteContainer(ip)
+		utils.DeleteContainer(id)
 		sendHttpResponse(w, "删除成功", "")
 	case "edit":
 		ip := r.Form.Get("ip")
@@ -53,22 +59,23 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 		password := r.Form.Get("password")
 		port, _ := strconv.Atoi(r.Form.Get("port"))
 		db, _ := strconv.Atoi(r.Form.Get("db"))
-		container := utils.ContainerMap[ip]
+		id := ip + ":" + strconv.Itoa(port)
+		container := utils.ContainerMap[id]
 		if container == nil {
-			sendHttpErrorResponse(w, -1, "修改错误, IP不存在")
+			sendHttpErrorResponse(w, -1, "修改错误, ID不存在")
 			return
 		}
 		if container.Password != password || container.Port != port || container.Db != db {
-			if !utils.UpdateContainer(utils.Config{Ip:ip, Name:name, Password:password, Port:port, Db:db}) {
+			if !utils.UpdateContainer(utils.Config{id, ip, password, port, db, name}) {
 				sendHttpErrorResponse(w, -1, "修改错误, 请检查redis配置")
 				return
 			}
 		} else {
 			container.Name = name
 		}
-		sendHttpResponse(w, "修改成功", utils.ContainerMap[ip])
+		sendHttpResponse(w, "修改成功", utils.ContainerMap[id])
 		for index, conf := range utils.RedisConfigs {
-			if conf.Ip == ip {
+			if conf.Id == id {
 				utils.RedisConfigs[index].Name = name
 				utils.RedisConfigs[index].Password = password
 				utils.RedisConfigs[index].Port = port
@@ -82,24 +89,23 @@ func ContainerHandle(w http.ResponseWriter, r *http.Request) {
 		password := r.Form.Get("password")
 		port, _ := strconv.Atoi(r.Form.Get("port"))
 		db, _ := strconv.Atoi(r.Form.Get("db"))
-		if utils.AddContainer(utils.Config{Ip:ip, Name:name, Password:password, Port:port, Db:db}) {
-			sendHttpResponse(w, "添加成功", utils.ContainerMap[ip])
-			utils.RedisConfigs = append(utils.RedisConfigs, utils.Config{ip, password, port, db, name})
+		id := ip + ":" + strconv.Itoa(port)
+		if utils.AddContainer(utils.Config{id, ip, password,port, db, name}, true) {
+			sendHttpResponse(w, "添加成功", utils.ContainerMap[id])
+			utils.RedisConfigs = append(utils.RedisConfigs, utils.Config{id, ip, password, port, db, name})
 			utils.SaveConfig()
 		} else {
-			sendHttpErrorResponse(w, -1, "添加错误, 请检查redis配置是否重复或者正确")
+			sendHttpErrorResponse(w, -1, "添加错误, 请检查redis配置是否重复或者不正确")
 		}
 	case "publish":
-		ip := r.Form.Get("ip")
 		key := r.Form.Get("key")
 		msg := r.Form.Get("msg")
-		container := utils.ContainerMap[ip]
+		container := utils.ContainerMap[id]
 		container.PublishMsg(key, msg)
 		sendHttpResponse(w, key, msg)
 	case "execute":
-		ip := r.Form.Get("ip")
 		command := r.Form.Get("command")
-		container := utils.ContainerMap[ip]
+		container := utils.ContainerMap[id]
 		sendHttpResponse(w, "", container.Execute(command))
 	}
 }
@@ -141,9 +147,9 @@ func SystemHandle(w http.ResponseWriter, r *http.Request) {
 
 func DataHandle(w http.ResponseWriter, r *http.Request) {
 	_ = r.ParseForm()
-	ip := r.Form.Get("ip")
+	id := r.Form.Get("id")
 	key := r.Form.Get("key")
-	container := utils.ContainerMap[ip]
+	container := utils.ContainerMap[id]
 	method := r.Form.Get("method")
 	switch method {
 	case "select_db":

@@ -7,12 +7,12 @@
 
 有任何问题欢迎提[issue](https://github.com/liuzhuoling2011/RedisGo/issues), 良好的关注度和参与度有助于开源项目的长远发展~
 
-![](http://qiniu.zoranjojo.top/RedisGo_Info.png)
-![](http://qiniu.zoranjojo.top/RedisGo_Manage.png)
-![](http://qiniu.zoranjojo.top/RedisGo_Data.png)
-![](http://qiniu.zoranjojo.top/RedisGo_Monitor.png)
-![](http://qiniu.zoranjojo.top/RedisGo_Pubsub.png)
-![](http://qiniu.zoranjojo.top/RedisGo_Terminal.png)
+![](https://gitee.com/liuzhuoling/pic-go/raw/master/RedisGo/RedisGo_Info.png)
+![](https://gitee.com/liuzhuoling/pic-go/raw/master/RedisGo/RedisGo_Manage.png)
+![](https://gitee.com/liuzhuoling/pic-go/raw/master/RedisGo/RedisGo_Data.png)
+![](https://gitee.com/liuzhuoling/pic-go/raw/master/RedisGo/RedisGo_Monitor.png)
+![](https://gitee.com/liuzhuoling/pic-go/raw/master/RedisGo/RedisGo_Pubsub.png)
+![](https://gitee.com/liuzhuoling/pic-go/raw/master/RedisGo/RedisGo_Terminal.png)
 
 ### 运行
 程序已经打包好放在 [release](https://github.com/liuzhuoling2011/RedisGo/releases) 页面
