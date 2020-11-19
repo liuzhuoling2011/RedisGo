@@ -33,13 +33,13 @@ func WSHandler(conn *websocket.Conn) {
 		rType, _ := rJson.Get("type").Int()
 		switch rType {
 		case 1: // 查询info信息
-			ip, _ := rJson.Get("ip").String()
-			container := utils.ContainerMap[ip]
-			log.Println("收到查询info的命令, IP: " + ip)
+			id, _ := rJson.Get("id").String()
+			container := utils.ContainerMap[id]
+			log.Println("收到查询info的命令, ID: " + id)
 			go func() {
 				for {
 					d, _ := json.Marshal(container.GetInfo())
-					err := sendResponse(conn, 1, 0, ip, string(d))
+					err := sendResponse(conn, 1, 0, id, string(d))
 					// 如果websocket断开, 退出协程
 					if err != nil {
 						return
@@ -48,17 +48,17 @@ func WSHandler(conn *websocket.Conn) {
 				}
 			}()
 		case 2:
-			ip, _ := rJson.Get("ip").String()
+			id, _ := rJson.Get("id").String()
 			channel, _ := rJson.Get("channel").String()
 			comm, _ := rJson.Get("command").String()
-			container := utils.ContainerMap[ip]
+			container := utils.ContainerMap[id]
 			if comm == "open" {
-				log.Println("收到订阅的命令, IP: " + ip + " Channel: " + channel)
-				if redisChanMap[ip] == nil {
-					redisChanMap[ip] = make(map[string] chan int)
+				log.Println("收到订阅的命令, ID: " + id + " Channel: " + channel)
+				if redisChanMap[id] == nil {
+					redisChanMap[id] = make(map[string] chan int)
 				}
-				if redisChanMap[ip][channel] == nil {
-					redisChanMap[ip][channel] = make(chan int)
+				if redisChanMap[id][channel] == nil {
+					redisChanMap[id][channel] = make(chan int)
 				}
 				go func(command chan int) {
 					pubsub := container.Subscribe(channel)
@@ -87,22 +87,22 @@ func WSHandler(conn *websocket.Conn) {
 						case <- command:
 							_ = pubsub.Close()
 							log.Println("已经取消, " + " Channel: " + channel)
-							_ = sendResponse(conn, 2, -1, ip, channel)
+							_ = sendResponse(conn, 2, -1, id, channel)
 						default:
 							// 发送心跳信号检测Websocket连接是否断开, 如果断开, 需要取消订阅该连接下的所有订阅
 							err := sendResponse(conn, 0, 0, "", "")
 							if err != nil {
-								log.Println("Websocket连接断开, 取消订阅 IP: " + ip + " Channel: " + channel)
+								log.Println("Websocket连接断开, 取消订阅 ID: " + id + " Channel: " + channel)
 								_ = pubsub.Close()
 								return
 							}
 							time.Sleep(time.Second)
 						}
 					}
-				}(redisChanMap[ip][channel])
+				}(redisChanMap[id][channel])
 			} else if comm == "close" {
-				log.Println("收到取消订阅的命令, IP: " + ip + " Channel: " + channel)
-				redisChanMap[ip][channel] <- 88
+				log.Println("收到取消订阅的命令, ID: " + id + " Channel: " + channel)
+				redisChanMap[id][channel] <- 88
 			}
 		}
 	}
