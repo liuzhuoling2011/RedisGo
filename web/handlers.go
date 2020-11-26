@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"redisgo/utils"
@@ -151,6 +152,8 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 	key := r.Form.Get("key")
 	container := utils.ContainerMap[id]
 	method := r.Form.Get("method")
+	ops := r.Form.Get("ops")
+
 	switch method {
 	case "select_db":
 		db := r.Form.Get("db")
@@ -195,7 +198,6 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 		newName := r.Form.Get("new_name")
 		sendHttpResponse(w, "", container.Rename(key, newName))
 	case "string_ops":
-		ops := r.Form.Get("ops")
 		if ops == "set" {
 			ttl, _ := strconv.Atoi(r.Form.Get("ttl"))
 			value := r.Form.Get("value")
@@ -203,44 +205,70 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 		}
 	case "list_ops":
 		ops := r.Form.Get("ops")
-		if ops == "push" {
-			pos, _ := strconv.Atoi(r.Form.Get("pos"))
-			value := r.Form.Get("value")
+		pos, _ := strconv.Atoi(r.Form.Get("pos"))
+		value := r.Form.Get("value")
+		if ops == "new" {
+			resp := container.PushListValue(key, value, pos)
+			ttl, _ := strconv.Atoi(r.Form.Get("ttl"))
+			if ttl != -1 && resp > 0 {
+				container.SetTTL(key, ttl)
+			}
+			sendHttpResponse(w, "", resp)
+		} else if ops == "push" {
 			sendHttpResponse(w, "", container.PushListValue(key, value, pos))
 		} else if ops == "delete" {
-			pos, _ := strconv.Atoi(r.Form.Get("pos"))
 			sendHttpResponse(w, "", container.DeleteListValue(key, pos))
 		} else if ops == "set" {
-			pos, _ := strconv.Atoi(r.Form.Get("pos"))
-			value := r.Form.Get("value")
 			sendHttpResponse(w, "", container.SetListValue(key, pos, value))
 		}
 	case "hash_ops":
 		ops := r.Form.Get("ops")
 		hashKey := r.Form.Get("hash_key")
-		if ops == "delete" {
+		value := r.Form.Get("value")
+		if ops == "new" {
+			resp := container.SetHashValue(key, hashKey, value)
+			ttl, _ := strconv.Atoi(r.Form.Get("ttl"))
+			if ttl != -1 && resp {
+				container.SetTTL(key, ttl)
+			}
+			sendHttpResponse(w, "", resp)
+		} else if ops == "delete" {
 			sendHttpResponse(w, "", container.DeleteHashValue(key, hashKey))
 		} else if ops == "set" {
-			value := r.Form.Get("value")
 			sendHttpResponse(w, "", container.SetHashValue(key, hashKey, value))
 		}
 	case "set_ops":
 		ops := r.Form.Get("ops")
 		setKey := r.Form.Get("set_key")
-		if ops == "delete" {
+		value := r.Form.Get("value")
+		if ops == "new" {
+			resp := container.SetSetValue(key, setKey, value)
+			fmt.Println(key, setKey, value)
+			ttl, _ := strconv.Atoi(r.Form.Get("ttl"))
+			if ttl != -1 && resp > 0 {
+				container.SetTTL(key, ttl)
+			}
+			sendHttpResponse(w, "", resp)
+		} else if ops == "delete" {
 			sendHttpResponse(w, "", container.DeleteSetValue(key, setKey))
 		} else if ops == "set" {
-			value := r.Form.Get("value")
 			sendHttpResponse(w, "", container.SetSetValue(key, setKey, value))
 		}
 	case "zset_ops":
 		ops := r.Form.Get("ops")
 		zsetKey := r.Form.Get("zset_key")
-		if ops == "delete" {
+		value, _ := strconv.ParseFloat(r.Form.Get("value"), 64)
+		if ops == "new" {
+			resp := container.SetZSetValue(key, zsetKey, value)
+			ttl, _ := strconv.Atoi(r.Form.Get("ttl"))
+			if ttl != -1 && resp > 0 {
+				container.SetTTL(key, ttl)
+			}
+			sendHttpResponse(w, "", resp)
+		} else if ops == "delete" {
 			sendHttpResponse(w, "", container.DeleteZSetValue(key, zsetKey))
 		} else if ops == "set" {
-			value, _ := strconv.ParseFloat(r.Form.Get("value"), 64)
-			sendHttpResponse(w, "", container.SetZSetValue(key, zsetKey, value))
+			sendHttpResponse(w, "", container.UpdateZSetScore(key, zsetKey, value))
 		}
 	}
 }

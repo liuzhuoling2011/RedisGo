@@ -441,7 +441,7 @@ func (c *Container) GetStringValue(key string) string {
 }
 
 func (c *Container) SetStringValue(key string, value string, ttl int) string {
-	info, _ := c.Redis.Set(key, value, time.Duration(ttl)).Result()
+	info, _ := c.Redis.Set(key, value, time.Duration(ttl) * time.Second).Result()
 	return info
 }
 
@@ -581,8 +581,13 @@ func (c *Container) DeleteZSetValue(key string, zsetKey string) int64 {
 	return info
 }
 
-func (c *Container) SetZSetValue(key string, zsetKey string, value float64) float64 {
+func (c *Container) UpdateZSetScore(key string, zsetKey string, value float64) float64 {
 	oriValue, _ := c.Redis.ZScore(key, zsetKey).Result()
 	info, _ := c.Redis.ZIncrBy(key, value - oriValue, zsetKey).Result()
+	return info
+}
+
+func (c *Container) SetZSetValue(key string, zsetKey string, value float64) int64 {
+	info, _ := c.Redis.ZAdd(key, &redis.Z{Score: value, Member: zsetKey}).Result()
 	return info
 }
