@@ -2,10 +2,12 @@
 
 感谢使用RedisGo, 为更好监控/管理的Redis而倾心打造~
 
+- `简约`, `可视化`使用分析`Redis`
 - 对`大量的key和数据`进行优化 丝滑流畅~
 - 对`Pubsub`的使用体验做了大量优化, 谁用谁知道~
+- `B/S`模式架构, 可本地, 云端使用, 灵活部署
 
-有任何问题欢迎提[issue](https://github.com/liuzhuoling2011/RedisGo/issues), 良好的关注度和参与度有助于开源项目的长远发展~
+有任何问题欢迎提[Issue](https://github.com/liuzhuoling2011/RedisGo/issues), 良好的关注度和参与度有助于开源项目的长远发展~
 
 ![](https://gitee.com/liuzhuoling/pic-go/raw/master/RedisGo/RedisGo_Info.png)
 ![](https://gitee.com/liuzhuoling/pic-go/raw/master/RedisGo/RedisGo_Manage.png)
@@ -15,7 +17,7 @@
 ![](https://gitee.com/liuzhuoling/pic-go/raw/master/RedisGo/RedisGo_Terminal.png)
 
 ### 运行
-程序已经打包好放在 [release](https://github.com/liuzhuoling2011/RedisGo/releases) 页面
+程序已经打包好放在 [Release](https://github.com/liuzhuoling2011/RedisGo/releases) 页面
 
 #### 对于 Windows 版本:
 ```
@@ -37,7 +39,7 @@
 
 ```./RedisGo web --port 12345```
 
-Enjoy, 如果觉得好用, 请不要吝啬 ```star``` 或者 ```follow``` 哦, 或者顺便 ```buy me a coffee```
+Enjoy, 如果觉得好用, 请不要吝啬 ```Star``` 或者 ```Follow``` 哦, 或者顺便 ```Buy Me A Coffee```
 
 |支付宝|微信|
 |:-----:|:-----:|

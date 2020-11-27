@@ -474,11 +474,17 @@ func (c *Container) DeleteListValue(key string, pos int) int64 {
 }
 
 func (c *Container) PushListValue(key string, value string, pos int) int64 {
-	var info int64
+	var info int64 = -1
 	if pos == 0 {
 		info, _ = c.Redis.LPush(key, value).Result()
 	} else if pos == -1{
 		info, _ = c.Redis.RPush(key, value).Result()
+	} else {
+		llen, _ := c.Redis.LLen(key).Result()
+		if pos <= int(llen) {
+			item, _ := c.Redis.LIndex(key, int64(pos)).Result()
+			info, _ = c.Redis.LInsertBefore(key, item, value).Result()
+		}
 	}
 	return info
 }
@@ -522,6 +528,11 @@ func (c *Container) SetHashValue(key string, hashKey string, value string) bool 
 	return info
 }
 
+func (c *Container) AddHashValue(key string, hashKey string, value string) bool {
+	info, _ := c.Redis.HSetNX(key, hashKey, value).Result()
+	return info
+}
+
 func (c *Container) GetSetValueAll(key string) []string {
 	info, _ := c.Redis.SMembers(key).Result()
 	return info
@@ -553,6 +564,11 @@ func (c *Container) DeleteSetValue(key string, setKey string) int64 {
 
 func (c *Container) SetSetValue(key string, setKey string, value string) int64 {
 	c.DeleteSetValue(key, setKey)
+	info, _ := c.Redis.SAdd(key, value).Result()
+	return info
+}
+
+func (c *Container) AddSetValue(key string, value string) int64 {
 	info, _ := c.Redis.SAdd(key, value).Result()
 	return info
 }

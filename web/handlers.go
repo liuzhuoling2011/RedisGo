@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"redisgo/utils"
@@ -236,6 +235,8 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 			sendHttpResponse(w, "", container.DeleteHashValue(key, hashKey))
 		} else if ops == "set" {
 			sendHttpResponse(w, "", container.SetHashValue(key, hashKey, value))
+		} else if ops == "add" {
+			sendHttpResponse(w, "", container.AddHashValue(key, hashKey, value))
 		}
 	case "set_ops":
 		ops := r.Form.Get("ops")
@@ -243,7 +244,6 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 		value := r.Form.Get("value")
 		if ops == "new" {
 			resp := container.SetSetValue(key, setKey, value)
-			fmt.Println(key, setKey, value)
 			ttl, _ := strconv.Atoi(r.Form.Get("ttl"))
 			if ttl != -1 && resp > 0 {
 				container.SetTTL(key, ttl)
@@ -253,6 +253,8 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 			sendHttpResponse(w, "", container.DeleteSetValue(key, setKey))
 		} else if ops == "set" {
 			sendHttpResponse(w, "", container.SetSetValue(key, setKey, value))
+		} else if ops == "add" {
+			sendHttpResponse(w, "", container.AddSetValue(key, value))
 		}
 	case "zset_ops":
 		ops := r.Form.Get("ops")
@@ -269,6 +271,8 @@ func DataHandle(w http.ResponseWriter, r *http.Request) {
 			sendHttpResponse(w, "", container.DeleteZSetValue(key, zsetKey))
 		} else if ops == "set" {
 			sendHttpResponse(w, "", container.UpdateZSetScore(key, zsetKey, value))
+		} else if ops == "add" {
+			sendHttpResponse(w, "", container.SetZSetValue(key, zsetKey, value))
 		}
 	}
 }
